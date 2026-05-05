@@ -260,18 +260,34 @@ with open(ARCHIVO, "wb") as f:
 with open(ARCHIVO, "r+b") as f:
     mm = mmap.mmap(f.fileno(), TAMAÑO)
 
+    tiempos = []
     for i in range(10):
         mensaje = f"Dato #{i}: {time.ctime()}".encode()
+
+        t0 = time.perf_counter()
         mm.seek(0)
         # Primero escribir largo, después el mensaje
         mm.write(struct.pack('i', len(mensaje)))
         mm.write(mensaje)
-        mm.flush()
-        print(f"[ESCRITOR] Escribí: {mensaje.decode()}")
+        # mm.flush()   # ← comentar/descomentar para comparar tiempos
+        t1 = time.perf_counter()
+
+        tiempos.append((t1 - t0) * 1_000_000)  # microsegundos
+        print(f"[ESCRITOR] Escribí: {mensaje.decode()} ({tiempos[-1]:.1f} µs)")
         time.sleep(1)
 
+    print(f"\nPromedio por escritura: {sum(tiempos)/len(tiempos):.1f} µs")
     mm.close()
 ```
+
+> **Nota sobre `flush()`**: cuando ambos procesos usan `mmap` sobre el mismo archivo, **NO necesitás `flush()`** entre escrituras. Las páginas del kernel se comparten y los cambios son visibles al instante. Llamar `flush()` en cada iteración fuerza un round-trip al disco y mata la principal ventaja de mmap (la velocidad).
+>
+> **Probalo vos mismo**: descomentá la línea `mm.flush()` y compará los tiempos promedio. Vas a ver una diferencia notable (de microsegundos a milisegundos, según el disco).
+>
+> Sólo usá `flush()` cuando:
+> - Querés **persistencia ante crashes** (que los datos sobrevivan un corte de luz)
+> - El **lector NO usa mmap** y va a hacer `read()` normal
+> - Necesitás un **snapshot consistente** en disco
 
 **Proceso lector:**
 

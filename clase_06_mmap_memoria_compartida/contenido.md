@@ -36,9 +36,9 @@ Ambos procesos acceden a la misma región física de memoria. Cero copias. Veloc
 
 ### Comparación
 
-| Mecanismo | Copias | Velocidad | Sincronización | Complejidad |
+| Mecanismo | Copias por mensaje | Velocidad | Sincronización | Complejidad |
 |-----------|--------|-----------|----------------|-------------|
-| Pipe | 2 (ida) | Moderada | Implícita (FIFO) | Baja |
+| Pipe | 2 (escritor → kernel → lector) | Moderada | Implícita (FIFO) | Baja |
 | Queue | 2 + serialización | Moderada | Implícita | Baja |
 | Memoria compartida | 0 | Máxima | Manual (peligro) | Alta |
 

@@ -1,0 +1,5 @@
+Esta es la primera línea del archivo de ejemplo.
+Esta es la segunda línea con la palabra clave.
+Tercera línea para tener algo de contenido.
+Cuarta línea con números: 12345 67890.
+Quinta línea final del archivo.

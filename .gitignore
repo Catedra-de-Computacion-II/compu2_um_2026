@@ -8,7 +8,7 @@
 #clase_03_procesos/
 #clase_04_pipes/
 #clase_05_senales/
-clase_06_mmap_memoria_compartida/
+#clase_06_mmap_memoria_compartida/
 clase_07_multiprocessing_avanzado/
 clase_08_threading/
 clase_09_sincronizacion_1/

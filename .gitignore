@@ -10,9 +10,9 @@
 #clase_05_senales/
 clase_06_mmap_memoria_compartida/
 clase_07_multiprocessing_avanzado/
-clase_08_sincronizacion_1/
-clase_09_sincronizacion_2/
-clase_10_threading/
+clase_08_threading/
+clase_09_sincronizacion_1/
+clase_10_sincronizacion_2/
 clase_11_redes_fundamentos/
 clase_12_sockets_tcp/
 clase_13_servidores_concurrentes/

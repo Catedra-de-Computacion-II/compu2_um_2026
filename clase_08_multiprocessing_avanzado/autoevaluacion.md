@@ -1,130 +1,155 @@
-# Clase 8: Multiprocessing - Autoevaluación
+# Clase 8: Multiprocessing Avanzado - Autoevaluación
 
-Responde estas preguntas para verificar tu comprensión. Las respuestas están al final.
+Respondé estas preguntas para verificar tu comprensión. Las respuestas están al final.
 
 ---
 
 ## Preguntas (20)
 
-### 1. ¿Cuál es la principal ventaja de multiprocessing sobre threading en Python?
-a) Es más fácil de usar
-b) Supera el GIL permitiendo verdadero paralelismo
-c) Usa menos memoria
-d) Es más rápido siempre
+### 1. ¿Por qué `Pool` es preferible a crear procesos manualmente cuando se ejecutan muchas tareas?
 
-### 2. ¿Los procesos creados con multiprocessing comparten memoria por defecto?
-a) Sí
-b) No
-c) Solo variables globales
-d) Solo con Manager
+a) Es más fácil de programar
+b) Reutiliza los procesos workers en lugar de crear y destruir uno por tarea
+c) Funciona mejor en Windows
+d) Permite usar lambdas
 
-### 3. ¿Por qué es necesario `if __name__ == "__main__":` en multiprocessing?
-a) Es opcional
-b) Para evitar que el código se ejecute al importar (necesario en Windows)
-c) Solo por estilo
-d) Para mejorar rendimiento
+### 2. ¿Qué hace `Pool.map(func, iterable)`?
 
-### 4. ¿Qué clase se usa para crear pools de procesos?
-a) ProcessPool
-b) Pool
-c) Workers
-d) ProcessExecutor
+a) Aplica `func` a cada elemento del iterable y devuelve los resultados como lista cuando todos terminan
+b) Devuelve un iterador lazy con los resultados
+c) Ejecuta `func` una sola vez
+d) No espera ningún resultado
 
-### 5. ¿Qué método de Pool aplica una función a cada elemento de un iterable?
-a) apply()
-b) execute()
-c) map()
-d) run()
+### 3. ¿Cuál es la diferencia entre `map` e `imap`?
 
-### 6. ¿Cuál es la diferencia entre `map` e `imap` en Pool?
 a) No hay diferencia
-b) imap es un iterador lazy, map retorna lista completa
-c) map es más rápido
-d) imap es para múltiples argumentos
+b) `imap` es un iterador lazy; `map` devuelve la lista completa
+c) `map` es para múltiples argumentos
+d) `imap` es para procesos remotos
 
-### 7. ¿Qué clase permite compartir un valor simple entre procesos?
-a) SharedValue
-b) Value
-c) Shared
-d) GlobalValue
+### 4. ¿Qué hace `imap_unordered` distinto a `imap`?
 
-### 8. ¿Para qué se usa multiprocessing.Queue?
-a) Para ordenar procesos
-b) Para comunicación entre procesos
-c) Para sincronización
-d) Para logging
+a) Es para argumentos sin nombre
+b) Devuelve los resultados en el orden en que terminan, no en el orden de entrada
+c) No funciona con Pool
+d) Es síncrono
 
-### 9. ¿Qué retorna Pipe()?
-a) Un solo extremo
-b) Dos conexiones (extremos del pipe)
-c) Un Queue
-d) Un file descriptor
+### 5. ¿Para qué sirve `Pool.starmap`?
 
-### 10. ¿Qué es Manager en multiprocessing?
-a) Un supervisor de procesos
-b) Un servidor que permite compartir objetos complejos entre procesos
-c) Un pool manager
-d) Un garbage collector
+a) Para ejecutar tareas en estrella
+b) Para funciones que reciben múltiples argumentos (desempaqueta cada tupla del iterable)
+c) Es un sinónimo de `map`
+d) Para tareas prioritarias
 
-### 11. ¿Qué método espera a que un proceso termine?
-a) wait()
-b) join()
-c) sync()
-d) finish()
+### 6. ¿Qué devuelve `Pool.apply_async`?
 
-### 12. ¿Qué protocolo usa multiprocessing para serializar objetos?
+a) El resultado directamente
+b) Un objeto `AsyncResult` que representa el valor futuro
+c) Nada
+d) Una excepción
+
+### 7. ¿Qué método de `AsyncResult` verifica si la tarea terminó sin bloquear?
+
+a) `done()`
+b) `ready()`
+c) `finished()`
+d) `complete()`
+
+### 8. ¿Cuántos workers usa `Pool()` sin argumentos?
+
+a) Siempre 1
+b) `os.cpu_count()` (cantidad de cores disponibles)
+c) Siempre 4
+d) Es obligatorio especificar
+
+### 9. ¿Para qué sirve `Value('i', 0)` de multiprocessing?
+
+a) Crea un entero compartido entre procesos en memoria compartida
+b) Crea una variable local
+c) Es para queues
+d) Convierte int a string
+
+### 10. ¿Qué tipo de datos comparte `Array`?
+
+a) Solo strings
+b) Tipos primitivos de C (int, double, char...) en memoria contigua compartida
+c) Objetos Python arbitrarios
+d) Solo booleanos
+
+### 11. ¿En qué se diferencia `Manager` de `Value` y `Array`?
+
+a) `Manager` es más rápido
+b) `Manager` corre un proceso separado y permite compartir objetos Python complejos (dict, list); es más lento pero más flexible
+c) Son idénticos
+d) `Manager` solo funciona en Windows
+
+### 12. ¿Por qué el siguiente código falla?
+
+```python
+with Pool(4) as pool:
+    pool.map(lambda x: x * 2, range(10))
+```
+
+a) `lambda` no se puede serializar con pickle
+b) `Pool` no acepta lambdas en macOS
+c) `map` no existe en Pool
+d) Falta `if __name__ == "__main__":`
+
+### 13. ¿Qué protocolo usa multiprocessing para pasar objetos entre procesos?
+
 a) JSON
 b) XML
 c) pickle
-d) marshal
+d) Protocol Buffers
 
-### 13. ¿Pueden las lambdas pasarse a Pool.map()?
-a) Sí
-b) No, no son serializables con pickle
-c) Solo en Linux
-d) Solo con cloudpickle
+### 14. ¿Para qué tipo de tareas conviene multiprocessing?
 
-### 14. ¿Cuál es el overhead principal de multiprocessing vs threading?
-a) Más memoria
-b) Creación de procesos es más costosa
-c) No hay overhead
-d) Sincronización
+a) Esperar respuestas de red (I/O-bound)
+b) Cálculos pesados (CPU-bound)
+c) Tareas instantáneas (< 1ms)
+d) Servir muchas conexiones cortas
 
-### 15. ¿Para qué tipo de tareas es mejor multiprocessing?
-a) I/O-bound
-b) CPU-bound
-c) Tareas simples
-d) Networking
+### 15. ¿Qué hace `from functools import reduce`?
 
-### 16. ¿Qué hace Pool.starmap()?
-a) Mapea con múltiples argumentos (desempaqueta tuplas)
-b) Ejecuta en estrella
-c) Prioriza tareas
-d) Map asíncrono
+a) Importa una función que aplica acumulativamente una función de dos argumentos a una secuencia, reduciéndola a un valor
+b) Reduce el tamaño de un archivo
+c) Optimiza el código
+d) Comprime datos
 
-### 17. ¿Cómo se protege un Value compartido de race conditions?
-a) Es thread-safe automáticamente
-b) Usando get_lock() o Lock explícito
-c) No es necesario
-d) Con Semaphore
+### 16. En Map-Reduce, ¿qué etapa se paraleliza típicamente?
 
-### 18. ¿Qué método de AsyncResult verifica si terminó?
-a) done()
-b) ready()
-c) finished()
-d) complete()
+a) Solo reduce
+b) Solo map
+c) Map se paraleliza, reduce se hace secuencial combinando los resultados
+d) Ninguna
 
-### 19. ¿Cuál es equivalente a ThreadPoolExecutor para procesos?
-a) ProcessPool
-b) ProcessPoolExecutor
-c) MultiprocessingExecutor
-d) ParallelExecutor
+### 17. ¿Qué es un Pipeline de procesos?
 
-### 20. ¿Qué pasa si un proceso hijo falla?
-a) El padre falla también
-b) El padre puede detectarlo con exitcode
-c) Se reinicia automáticamente
-d) Se ignora
+a) Una sola tarea ejecutada N veces
+b) Una cadena de etapas conectadas por colas, donde cada etapa transforma los datos
+c) Un atajo de Pool
+d) Una variante de Queue
+
+### 18. ¿Cuándo conviene `imap_unordered` sobre `imap`?
+
+a) Cuando no te importa el orden y querés máxima velocidad
+b) Cuando necesitás el orden estricto
+c) Cuando hay un solo elemento
+d) Siempre que uses Pool
+
+### 19. ¿Por qué `Value` provee `get_lock()` automáticamente?
+
+a) Para que puedas evitar race conditions al modificar el valor desde varios procesos
+b) Para hacer el código más lento
+c) Para serializar mejor
+d) Es obligatorio usarlo siempre
+
+### 20. ¿Cuándo NO conviene usar multiprocessing?
+
+a) Cuando las tareas son muy chicas (< 10ms) y el overhead de serialización supera la ganancia
+b) Nunca, siempre conviene
+c) Solo en Windows
+d) Solo en Linux
 
 ---
 
@@ -133,32 +158,33 @@ d) Se ignora
 <details>
 <summary>Click para ver respuestas</summary>
 
-1. **b** - Supera el GIL permitiendo verdadero paralelismo
-2. **b** - No (tienen memoria separada)
-3. **b** - Para evitar que el código se ejecute al importar
-4. **b** - Pool
-5. **c** - map()
-6. **b** - imap es un iterador lazy, map retorna lista completa
-7. **b** - Value
-8. **b** - Para comunicación entre procesos
-9. **b** - Dos conexiones (extremos del pipe)
-10. **b** - Un servidor que permite compartir objetos complejos
-11. **b** - join()
-12. **c** - pickle
-13. **b** - No, no son serializables con pickle
-14. **b** - Creación de procesos es más costosa
-15. **b** - CPU-bound
-16. **a** - Mapea con múltiples argumentos
-17. **b** - Usando get_lock() o Lock explícito
-18. **b** - ready()
-19. **b** - ProcessPoolExecutor
-20. **b** - El padre puede detectarlo con exitcode
+1. **b** - Reutiliza los workers en lugar de crear/destruir
+2. **a** - Aplica func y devuelve lista al final, bloqueando hasta terminar
+3. **b** - `imap` es lazy, `map` devuelve lista completa
+4. **b** - Devuelve en orden de finalización, no de entrada
+5. **b** - Desempaqueta tuplas como argumentos posicionales
+6. **b** - Un `AsyncResult` (future)
+7. **b** - `ready()`
+8. **b** - `os.cpu_count()`
+9. **a** - Entero compartido en memoria compartida
+10. **b** - Tipos primitivos de C en memoria contigua
+11. **b** - Manager usa proceso separado, más lento pero soporta objetos complejos
+12. **a** - Lambdas no son picklables
+13. **c** - pickle
+14. **b** - CPU-bound
+15. **a** - Aplica función acumulativa para reducir secuencia a un valor
+16. **c** - Map se paraleliza, reduce combina secuencialmente
+17. **b** - Cadena de etapas conectadas por colas
+18. **a** - Cuando no importa el orden y querés máxima velocidad
+19. **a** - Para evitar race conditions
+20. **a** - Cuando las tareas son chicas y el overhead supera la ganancia
 
 ### Puntuación
-- 18-20: Excelente
-- 14-17: Buen nivel
-- 10-13: Necesita repaso
-- <10: Revisar material
+
+- 18-20: Excelente dominio del tema. Avanzá a los ejercicios adicionales
+- 14-17: Buen nivel. Repasá los temas donde fallaste
+- 10-13: Releé el contenido, los conceptos clave todavía no están firmes
+- < 10: Repasá la clase completa y consultá dudas con el docente
 
 </details>
 

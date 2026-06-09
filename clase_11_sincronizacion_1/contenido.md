@@ -2,9 +2,11 @@
 
 ## Introducción: el desafío de la coordinación
 
-En la clase anterior vimos los conceptos básicos de threading y algunos primitivos de sincronización. Ahora profundizaremos en técnicas avanzadas para coordinar threads de forma correcta y eficiente.
+En la clase anterior vimos los conceptos básicos de threading y `Lock`, el primitivo de sincronización más simple. Ahora profundizamos: las primitivas avanzadas (`RLock`, `Condition`, `Semaphore`, `Event`, `Barrier`), cómo aparecen los **deadlocks** y patrones más complejos.
 
-La sincronización es quizás el aspecto más difícil de la programación concurrente. Los bugs son sutiles, difíciles de reproducir, y pueden manifestarse solo bajo ciertas condiciones de timing. Entender profundamente los primitivos de sincronización y cuándo usar cada uno es esencial para escribir código concurrente robusto.
+La sincronización es quizás el aspecto más difícil de la programación concurrente. Los bugs son sutiles, difíciles de reproducir, y pueden manifestarse solo bajo ciertas condiciones de timing. Entender profundamente los primitivos y cuándo usar cada uno es esencial para escribir código concurrente robusto.
+
+> **Nota:** Todos los ejemplos de esta clase son **completos y ejecutables**. Copialos y corrélos para ver el comportamiento en vivo. El archivo `demo_race_condition.py` que acompaña esta clase demuestra empíricamente cómo la falta de sincronización produce resultados distintos en cada ejecución.
 
 ---
 
@@ -12,7 +14,7 @@ La sincronización es quizás el aspecto más difícil de la programación concu
 
 Cuando múltiples threads acceden a recursos compartidos, pueden ocurrir problemas:
 
-### Race condition
+### Race condition (clásico: saldo bancario)
 
 ```python
 import threading
@@ -28,10 +30,21 @@ def retirar(cantidad):
         return True
     return False
 
-# Sin sincronización, dos retiros simultáneos pueden causar saldo negativo
+# Lanzar 10 threads que intentan retirar simultáneamente
+hilos = [threading.Thread(target=retirar, args=(200,)) for _ in range(10)]
+for h in hilos: h.start()
+for h in hilos: h.join()
+
+print(f"Saldo final: {saldo}")  # ¡Puede ser negativo!
 ```
 
-### Datos corruptos
+Para ver la race condition empíricamente, ejecutá [`demo_race_condition.py`](demo_race_condition.py) que viene con esta clase:
+
+```bash
+python3 demo_race_condition.py --runs 10
+```
+
+### Datos corruptos (estructura compartida)
 
 ```python
 import threading
@@ -44,15 +57,26 @@ def actualizar(valor):
     datos["contador"] += 1
     datos["suma"] += valor
     # Si se interrumpe entre ambas, los datos quedan inconsistentes
+
+# Lanzar 100 threads incrementando
+hilos = [threading.Thread(target=actualizar, args=(10,)) for _ in range(100)]
+for h in hilos: h.start()
+for h in hilos: h.join()
+
+print(f"contador: {datos['contador']}, suma: {datos['suma']}")
+# Esperado: contador=100, suma=1000
+# Real: puede salir cualquier cosa menor
 ```
 
 ---
 
 ## Lock: exclusión mutua básica
 
-El Lock garantiza que solo un thread puede ejecutar una sección crítica a la vez.
+El `Lock` garantiza que solo un thread puede ejecutar una sección crítica a la vez. Ya lo vimos en clase 10, acá profundizamos sus modos avanzados.
 
 ### Lock con timeout
+
+A veces no querés esperar indefinidamente. `acquire()` acepta un timeout:
 
 ```python
 import threading
@@ -60,36 +84,57 @@ import time
 
 lock = threading.Lock()
 
-def operacion_critica():
-    # Intentar adquirir con timeout
+def operacion_critica(id):
+    print(f"[{id}] Intentando adquirir el lock...")
+    # Intentar adquirir con timeout de 5 segundos
     if lock.acquire(timeout=5.0):
         try:
-            print("Lock adquirido, ejecutando operación...")
+            print(f"[{id}] Lock adquirido, ejecutando operación...")
+            time.sleep(3)  # Trabajo dentro de la sección crítica
+        finally:
+            lock.release()
+            print(f"[{id}] Lock liberado")
+    else:
+        print(f"[{id}] No se pudo adquirir el lock en 5 segundos")
+
+# Lanzar 3 threads: el primero agarra, los otros dos esperan
+hilos = [threading.Thread(target=operacion_critica, args=(i,)) for i in range(3)]
+for h in hilos: h.start()
+for h in hilos: h.join()
+```
+
+### Lock no bloqueante
+
+`acquire(blocking=False)` retorna `True` o `False` inmediatamente, sin esperar:
+
+```python
+import threading
+import time
+
+lock = threading.Lock()
+
+def operacion_no_bloqueante(id):
+    if lock.acquire(blocking=False):
+        try:
+            print(f"[{id}] Lock disponible, ejecutando...")
             time.sleep(1)
         finally:
             lock.release()
     else:
-        print("No se pudo adquirir el lock en 5 segundos")
+        print(f"[{id}] Lock ocupado, haciendo otra cosa...")
 
-# Uso con blocking=False para no bloquear
-def operacion_no_bloqueante():
-    if lock.acquire(blocking=False):
-        try:
-            print("Lock disponible!")
-        finally:
-            lock.release()
-    else:
-        print("Lock ocupado, haciendo otra cosa...")
+# 5 threads compiten: solo uno entra, los demás siguen de largo
+hilos = [threading.Thread(target=operacion_no_bloqueante, args=(i,)) for i in range(5)]
+for h in hilos: h.start()
+for h in hilos: h.join()
 ```
 
 ### RLock: lock reentrante
 
-Permite que el mismo thread adquiera el lock múltiples veces:
+`RLock` permite que el **mismo thread** adquiera el lock múltiples veces sin bloquearse. Es útil cuando un método protegido por lock llama a otro método que también necesita el mismo lock.
 
 ```python
 import threading
-
-rlock = threading.RLock()
 
 class CuentaBancaria:
     def __init__(self, saldo_inicial):
@@ -99,25 +144,76 @@ class CuentaBancaria:
     def depositar(self, cantidad):
         with self.lock:
             self.saldo += cantidad
+            print(f"Depositados {cantidad}. Saldo: {self.saldo}")
 
     def retirar(self, cantidad):
         with self.lock:
             if self.saldo >= cantidad:
                 self.saldo -= cantidad
+                print(f"Retirados {cantidad}. Saldo: {self.saldo}")
                 return True
             return False
 
     def transferir_a(self, otra_cuenta, cantidad):
-        # Necesitamos el lock propio Y potencialmente llamar métodos
-        # que también usan el lock
+        # Este método adquiere self.lock Y llama a retirar()
+        # que también adquiere self.lock. Con Lock normal: DEADLOCK.
+        # Con RLock: funciona, porque es el mismo thread.
         with self.lock:
-            if self.retirar(cantidad):  # Esto también usa self.lock
+            if self.retirar(cantidad):
                 otra_cuenta.depositar(cantidad)
                 return True
             return False
+
+
+cuenta_a = CuentaBancaria(1000)
+cuenta_b = CuentaBancaria(500)
+
+# Transferencia en un thread
+t = threading.Thread(target=cuenta_a.transferir_a, args=(cuenta_b, 300))
+t.start()
+t.join()
+
+print(f"Saldo A: {cuenta_a.saldo}")  # 700
+print(f"Saldo B: {cuenta_b.saldo}")  # 800
 ```
 
-### Problema del lock: deadlock
+### El peligro: deadlock con múltiples locks
+
+Cuando dos threads adquieren dos locks distintos en **orden inverso**, se cuelgan mutuamente:
+
+```python
+import threading
+import time
+
+lock_a = threading.Lock()
+lock_b = threading.Lock()
+
+def thread_1():
+    with lock_a:
+        print("Thread 1: tengo A")
+        time.sleep(0.1)
+        print("Thread 1: pidiendo B...")
+        with lock_b:  # Espera B
+            print("Thread 1: tengo A y B")
+
+def thread_2():
+    with lock_b:
+        print("Thread 2: tengo B")
+        time.sleep(0.1)
+        print("Thread 2: pidiendo A...")
+        with lock_a:  # Espera A: DEADLOCK
+            print("Thread 2: tengo B y A")
+
+t1 = threading.Thread(target=thread_1)
+t2 = threading.Thread(target=thread_2)
+t1.start(); t2.start()
+# El programa se cuelga: ninguno termina porque cada uno espera al otro.
+# Matar con Ctrl+C después de verlo colgado.
+```
+
+### Solución: orden consistente
+
+La regla de oro: **siempre adquirir los locks en el mismo orden** en todos los threads.
 
 ```python
 import threading
@@ -127,47 +223,33 @@ lock_b = threading.Lock()
 
 def thread_1():
     with lock_a:
-        print("Thread 1: tengo A")
-        with lock_b:  # Espera B
-            print("Thread 1: tengo A y B")
-
-def thread_2():
-    with lock_b:
-        print("Thread 2: tengo B")
-        with lock_a:  # Espera A - DEADLOCK!
-            print("Thread 2: tengo B y A")
-```
-
-### Solución: orden consistente
-
-```python
-import threading
-
-# Siempre adquirir locks en el mismo orden
-def thread_1():
-    with lock_a:
         with lock_b:
             print("Thread 1: tengo A y B")
 
 def thread_2():
-    with lock_a:  # Mismo orden que thread_1
+    with lock_a:    # Mismo orden que thread_1
         with lock_b:
             print("Thread 2: tengo A y B")
 
-# O mejor: usar un solo lock cuando sea posible
-lock_global = threading.Lock()
+t1 = threading.Thread(target=thread_1)
+t2 = threading.Thread(target=thread_2)
+t1.start(); t2.start()
+t1.join(); t2.join()
 ```
+
+Otra solución, cuando sea posible: **usar un solo lock que proteja a ambos recursos**.
 
 ---
 
 ## Condition: esperar por condiciones
 
-Condition permite que threads esperen hasta que cierta condición sea verdadera.
+`Condition` combina un lock con la capacidad de **esperar** y **notificar**. Útil cuando un thread necesita esperar a que cierta condición sea verdadera, y otro thread la hace verdadera.
 
 ### El patrón básico
 
 ```python
 import threading
+import time
 
 condition = threading.Condition()
 datos_disponibles = False
@@ -175,29 +257,39 @@ datos = None
 
 def productor():
     global datos_disponibles, datos
+    time.sleep(2)  # simular trabajo de producción
 
     with condition:
-        # Producir datos
         datos = "datos producidos"
         datos_disponibles = True
-
-        # Notificar a los que esperan
+        print("Productor: datos listos, notificando")
         condition.notify()  # notify_all() para despertar a todos
 
-def consumidor():
+def consumidor(id):
     global datos_disponibles
 
     with condition:
-        # Esperar hasta que haya datos
+        print(f"Consumidor {id}: esperando datos...")
         while not datos_disponibles:
             condition.wait()  # Libera el lock mientras espera
+        print(f"Consumidor {id}: recibí '{datos}'")
 
-        # Procesar datos
-        print(f"Recibido: {datos}")
-        datos_disponibles = False
+
+t_prod = threading.Thread(target=productor)
+t_cons = threading.Thread(target=consumidor, args=(1,))
+
+t_cons.start()  # consumidor arranca primero, espera
+t_prod.start()  # productor produce y notifica
+
+t_prod.join()
+t_cons.join()
 ```
 
-### Buffer acotado con Condition
+> **Regla importante**: siempre usar `while` (no `if`) en la condición. Existen "spurious wakeups": un thread puede despertarse sin que se haya cumplido la condición. El loop garantiza re-chequear.
+
+### Buffer acotado con Condition (productor-consumidor)
+
+Patrón clásico: productores que generan datos, consumidores que los procesan, con un buffer de capacidad limitada.
 
 ```python
 import threading
@@ -212,32 +304,26 @@ class BufferAcotado:
 
     def put(self, item):
         with self.condition:
-            # Esperar si está lleno
             while len(self.buffer) >= self.capacidad:
-                print(f"Buffer lleno ({len(self.buffer)}), esperando...")
+                print(f"Buffer lleno ({len(self.buffer)}/{self.capacidad}), productor espera...")
                 self.condition.wait()
 
             self.buffer.append(item)
-            print(f"Agregado {item}, buffer: {len(self.buffer)}/{self.capacidad}")
-
-            # Notificar que hay espacio/datos
+            print(f"+ {item}  buffer: {len(self.buffer)}/{self.capacidad}")
             self.condition.notify_all()
 
     def get(self):
         with self.condition:
-            # Esperar si está vacío
             while len(self.buffer) == 0:
-                print("Buffer vacío, esperando...")
+                print("Buffer vacío, consumidor espera...")
                 self.condition.wait()
 
             item = self.buffer.pop(0)
-            print(f"Sacado {item}, buffer: {len(self.buffer)}/{self.capacidad}")
-
-            # Notificar que hay espacio
+            print(f"- {item}  buffer: {len(self.buffer)}/{self.capacidad}")
             self.condition.notify_all()
             return item
 
-# Uso
+
 buffer = BufferAcotado(3)
 
 def productor(id):
@@ -248,130 +334,162 @@ def productor(id):
 def consumidor(id):
     for _ in range(5):
         time.sleep(random.uniform(0.2, 0.6))
-        item = buffer.get()
+        buffer.get()
+
+
+productores = [threading.Thread(target=productor, args=(i,)) for i in range(2)]
+consumidores = [threading.Thread(target=consumidor, args=(i,)) for i in range(2)]
+
+for t in productores + consumidores:
+    t.start()
+for t in productores + consumidores:
+    t.join()
+
+print("Todos terminaron")
 ```
 
 ### wait() con timeout
 
 ```python
 import threading
+import time
 
 condition = threading.Condition()
 
 def esperador():
     with condition:
+        print("Esperando hasta 5 segundos...")
         resultado = condition.wait(timeout=5.0)
         if resultado:
-            print("Condición notificada")
+            print("Condición notificada a tiempo")
         else:
-            print("Timeout - no hubo notificación")
+            print("Timeout: no hubo notificación")
+
+t = threading.Thread(target=esperador)
+t.start()
+# Nadie llama a notify(): el thread espera 5s y reporta timeout
+t.join()
 ```
 
 ---
 
 ## Semaphore: control de acceso concurrente
 
-Un Semaphore mantiene un contador interno que controla cuántos threads pueden acceder a un recurso.
+Un `Semaphore` mantiene un contador interno que controla cuántos threads pueden acceder a un recurso. Útil para limitar concurrencia (rate limiting, pools de conexiones).
 
-### Semáforo básico
+### Semáforo básico: pool de conexiones simulado
 
 ```python
 import threading
 import time
+import random
 
 # Máximo 3 conexiones simultáneas
 pool_conexiones = threading.Semaphore(3)
 
 def usar_conexion(id):
     print(f"[{id}] Esperando conexión...")
+    with pool_conexiones:
+        print(f"[{id}] Conectado")
+        time.sleep(random.uniform(1, 2))  # Trabajo con la conexión
+        print(f"[{id}] Desconectando")
 
-    pool_conexiones.acquire()
-    try:
-        print(f"[{id}] Conectado!")
-        time.sleep(2)  # Usar la conexión
-    finally:
-        pool_conexiones.release()
-        print(f"[{id}] Desconectado")
 
-# 10 threads intentan conectar, máximo 3 simultáneos
-threads = [threading.Thread(target=usar_conexion, args=(i,)) for i in range(10)]
-for t in threads:
-    t.start()
-for t in threads:
-    t.join()
+# 10 threads compiten por las 3 conexiones disponibles
+hilos = [threading.Thread(target=usar_conexion, args=(i,)) for i in range(10)]
+for t in hilos: t.start()
+for t in hilos: t.join()
+print("Todos terminaron")
 ```
 
-### BoundedSemaphore: prevenir errores
+### BoundedSemaphore: prevenir errores de release
+
+`Semaphore` deja que llames `release()` más veces que `acquire()` (el contador crece indefinidamente). `BoundedSemaphore` lanza error si pasa eso:
 
 ```python
 import threading
 
-# BoundedSemaphore no permite más releases que acquires
-sem = threading.BoundedSemaphore(2)
+# Semaphore: no chequea
+sem = threading.Semaphore(2)
+sem.release()  # OK, contador = 3 (¡error silencioso!)
+print(f"Semaphore contador: ahora {sem._value}")
 
-sem.acquire()
-sem.release()
-sem.release()  # ValueError! Excede el valor inicial
+# BoundedSemaphore: lanza ValueError
+bsem = threading.BoundedSemaphore(2)
+try:
+    bsem.release()  # Excede el valor inicial
+except ValueError as e:
+    print(f"BoundedSemaphore detectó el error: {e}")
 ```
 
 ### Semáforo binario vs Lock
 
-Un Semaphore(1) es similar a un Lock, pero con diferencias importantes:
+Un `Semaphore(1)` se parece a un `Lock`, pero hay una diferencia importante:
+
+- **Lock**: conceptualmente, solo el thread que adquirió puede liberar. (En Python en realidad no se enforce, pero es la convención.)
+- **Semaphore**: cualquier thread puede liberar.
+
+Esto permite usar `Semaphore` para casos donde la liberación se hace desde otro thread, pero al costo de perder esa garantía:
 
 ```python
 import threading
+import time
 
-lock = threading.Lock()
-sem = threading.Semaphore(1)
+sem = threading.Semaphore(0)  # arranca en 0 (bloqueado)
 
-# Lock: solo el thread que lo adquirió puede liberarlo (conceptualmente)
-# Semaphore: cualquier thread puede hacer release
-
-# Esto es válido con Semaphore pero sería un error lógico con Lock:
-def thread_a():
+def consumidor():
+    print("Consumidor: esperando señal...")
     sem.acquire()
+    print("Consumidor: recibí señal, sigo")
 
-def thread_b():
-    sem.release()  # OK con Semaphore, problemático con Lock
+def disparador():
+    time.sleep(2)
+    print("Disparador: enviando señal")
+    sem.release()  # OK aunque sea otro thread
+
+t1 = threading.Thread(target=consumidor)
+t2 = threading.Thread(target=disparador)
+t1.start(); t2.start()
+t1.join(); t2.join()
 ```
 
 ---
 
 ## Event: señalización simple
 
-Event es un flag thread-safe que threads pueden esperar.
+`Event` es un flag thread-safe que threads pueden esperar. Más simple que `Condition` cuando solo querés notificar "esto pasó".
 
-### Patrón de inicio coordinado
+### Patrón de inicio coordinado: la línea de largada
 
 ```python
 import threading
 import time
+import random
 
 inicio = threading.Event()
 
-def worker(id):
-    print(f"[Worker {id}] Listo, esperando inicio...")
+def corredor(id):
+    print(f"[Corredor {id}] En la línea de partida...")
     inicio.wait()  # Bloquea hasta que inicio.set()
-    print(f"[Worker {id}] ¡Arrancando!")
-    time.sleep(1)
-    print(f"[Worker {id}] Terminado")
+    print(f"[Corredor {id}] ¡Arrancó!")
+    tiempo = random.uniform(1, 3)
+    time.sleep(tiempo)
+    print(f"[Corredor {id}] Llegó en {tiempo:.2f}s")
 
-# Crear workers
-threads = [threading.Thread(target=worker, args=(i,)) for i in range(5)]
-for t in threads:
-    t.start()
 
-# Dar tiempo a que todos lleguen
+corredores = [threading.Thread(target=corredor, args=(i,)) for i in range(5)]
+for t in corredores: t.start()
+
+# Dar tiempo a que todos lleguen a la línea
 time.sleep(1)
 
-print("\n¡GO!\n")
-inicio.set()  # Todos arrancan
+print("\n=== PREPARADOS... LISTOS... YA! ===\n")
+inicio.set()  # Todos arrancan simultáneamente
 
-for t in threads:
-    t.join()
+for t in corredores: t.join()
 ```
 
-### Patrón de cancelación
+### Patrón de cancelación: workers que se pueden detener
 
 ```python
 import threading
@@ -379,22 +497,43 @@ import time
 
 detener = threading.Event()
 
-def worker_cancelable():
-    print("Worker iniciado")
+def worker_cancelable(id):
+    print(f"[Worker {id}] Iniciado")
+    i = 0
     while not detener.is_set():
-        print("Trabajando...")
-        # wait() con timeout permite chequear periódicamente
+        print(f"[Worker {id}] Iteración {i}")
+        i += 1
+        # wait() con timeout permite chequear periódicamente sin polling activo
         detener.wait(timeout=1.0)
-    print("Worker detenido")
+    print(f"[Worker {id}] Detenido limpiamente")
 
-t = threading.Thread(target=worker_cancelable)
-t.start()
+
+workers = [threading.Thread(target=worker_cancelable, args=(i,)) for i in range(3)]
+for t in workers: t.start()
 
 time.sleep(3)
-print("Solicitando detención...")
+print("\n=== Solicitando detención de todos los workers ===\n")
 detener.set()
 
-t.join()
+for t in workers: t.join()
+print("Todos terminaron")
+```
+
+### Métodos de Event
+
+```python
+import threading
+
+evento = threading.Event()
+
+evento.set()            # señala (estado = True)
+print(evento.is_set())  # True
+evento.clear()          # resetea (estado = False)
+print(evento.is_set())  # False
+
+# wait() retorna True si fue señalado, False si timeout
+evento.set()
+print(evento.wait(timeout=1.0))   # True, inmediato
 ```
 
 ### Event vs Condition
@@ -402,15 +541,15 @@ t.join()
 | Event | Condition |
 |-------|-----------|
 | Flag booleano simple | Permite condiciones complejas |
-| set() despierta a todos | notify() puede despertar uno |
-| El estado persiste | Se combina con predicados |
+| `set()` despierta a todos los que esperan | `notify()` puede despertar uno solo |
+| El estado persiste hasta `clear()` | Se combina con predicados (variables externas) |
 | Más simple | Más flexible |
 
 ---
 
 ## Barrier: punto de sincronización
 
-Barrier hace que N threads esperen hasta que todos lleguen a un punto.
+`Barrier` hace que N threads esperen hasta que todos lleguen a un punto. Útil para algoritmos paralelos por fases.
 
 ```python
 import threading
@@ -425,51 +564,70 @@ def fase(id):
     print(f"[{id}] Fase 1: trabajando...")
     time.sleep(random.uniform(0.5, 1.5))
     print(f"[{id}] Fase 1: completada, esperando en barrera...")
-
-    barrera.wait()  # Esperar a que todos completen fase 1
+    barrera.wait()  # espera a que los 4 lleguen
 
     # Fase 2
     print(f"[{id}] Fase 2: trabajando...")
     time.sleep(random.uniform(0.5, 1.5))
     print(f"[{id}] Fase 2: completada, esperando en barrera...")
+    barrera.wait()  # espera a que los 4 lleguen
 
-    barrera.wait()  # Esperar a que todos completen fase 2
+    print(f"[{id}] Todas las fases completadas")
 
-    print(f"[{id}] ¡Todas las fases completadas!")
 
-threads = [threading.Thread(target=fase, args=(i,)) for i in range(4)]
-for t in threads:
-    t.start()
-for t in threads:
-    t.join()
+hilos = [threading.Thread(target=fase, args=(i,)) for i in range(4)]
+for t in hilos: t.start()
+for t in hilos: t.join()
 ```
 
 ### Barrier con acción
 
+Podés pasar una función que se ejecuta **una sola vez**, cuando todos llegan a la barrera:
+
 ```python
 import threading
+import time
 
 def cuando_todos_llegan():
-    print("=== TODOS LLEGARON A LA BARRERA ===")
+    print(">>> TODOS LLEGARON A LA BARRERA <<<")
 
 barrera = threading.Barrier(3, action=cuando_todos_llegan)
+
+def worker(id):
+    print(f"[{id}] llegó")
+    barrera.wait()
+    print(f"[{id}] continúa")
+
+hilos = [threading.Thread(target=worker, args=(i,)) for i in range(3)]
+for t in hilos: t.start()
+for t in hilos: t.join()
 ```
 
 ### Barrier con timeout
 
+Si un thread no llega en el timeout, la barrera se "rompe" y todos los esperando reciben `BrokenBarrierError`:
+
 ```python
 import threading
+import time
 
 barrera = threading.Barrier(3)
 
 def worker(id, delay):
-    import time
     time.sleep(delay)
     try:
-        barrera.wait(timeout=5.0)
+        barrera.wait(timeout=2.0)
         print(f"[{id}] Pasó la barrera")
     except threading.BrokenBarrierError:
-        print(f"[{id}] Barrera rota!")
+        print(f"[{id}] Barrera rota: alguien no llegó")
+
+hilos = [
+    threading.Thread(target=worker, args=(0, 0.5)),
+    threading.Thread(target=worker, args=(1, 1.0)),
+    threading.Thread(target=worker, args=(2, 5.0)),  # éste tarda demasiado
+]
+for t in hilos: t.start()
+for t in hilos: t.join()
 ```
 
 ---
@@ -478,27 +636,33 @@ def worker(id, delay):
 
 ### Readers-Writers Lock
 
-Permite múltiples lectores o un único escritor:
+Múltiples threads pueden leer simultáneamente, pero un escritor necesita acceso exclusivo. La standard library de Python no lo provee, pero se puede implementar:
 
 ```python
 import threading
+import time
+import random
 
 class ReadWriteLock:
+    """Lock que permite múltiples lectores O un solo escritor."""
+
     def __init__(self):
         self.readers = 0
-        self.resource_lock = threading.Lock()
-        self.readers_lock = threading.Lock()
+        self.resource_lock = threading.Lock()   # protege el recurso
+        self.readers_lock = threading.Lock()    # protege el contador
 
     def acquire_read(self):
         with self.readers_lock:
             self.readers += 1
             if self.readers == 1:
+                # El primer lector toma el lock del recurso
                 self.resource_lock.acquire()
 
     def release_read(self):
         with self.readers_lock:
             self.readers -= 1
             if self.readers == 0:
+                # El último lector libera el recurso
                 self.resource_lock.release()
 
     def acquire_write(self):
@@ -507,31 +671,51 @@ class ReadWriteLock:
     def release_write(self):
         self.resource_lock.release()
 
-# Context managers
+
+# Uso con context managers
 class ReadContext:
-    def __init__(self, rwlock):
-        self.rwlock = rwlock
-
-    def __enter__(self):
-        self.rwlock.acquire_read()
-
-    def __exit__(self, *args):
-        self.rwlock.release_read()
+    def __init__(self, rwlock): self.rwlock = rwlock
+    def __enter__(self): self.rwlock.acquire_read()
+    def __exit__(self, *args): self.rwlock.release_read()
 
 class WriteContext:
-    def __init__(self, rwlock):
-        self.rwlock = rwlock
+    def __init__(self, rwlock): self.rwlock = rwlock
+    def __enter__(self): self.rwlock.acquire_write()
+    def __exit__(self, *args): self.rwlock.release_write()
 
-    def __enter__(self):
-        self.rwlock.acquire_write()
 
-    def __exit__(self, *args):
-        self.rwlock.release_write()
+rwlock = ReadWriteLock()
+datos = {"valor": 0}
+
+def lector(id):
+    for _ in range(3):
+        with ReadContext(rwlock):
+            print(f"[Lector {id}] leyendo: {datos}")
+            time.sleep(0.1)
+        time.sleep(random.uniform(0.1, 0.3))
+
+def escritor(id):
+    for i in range(3):
+        with WriteContext(rwlock):
+            datos["valor"] = i * 100 + id
+            print(f"[Escritor {id}] escribió: {datos}")
+            time.sleep(0.2)
+        time.sleep(random.uniform(0.2, 0.5))
+
+
+hilos = (
+    [threading.Thread(target=lector, args=(i,)) for i in range(3)] +
+    [threading.Thread(target=escritor, args=(i,)) for i in range(2)]
+)
+for t in hilos: t.start()
+for t in hilos: t.join()
 ```
+
+> **Atención**: esta implementación favorece a los lectores (writer starvation posible). Variantes más justas existen pero son más complejas.
 
 ### Double-checked locking
 
-Para inicialización lazy thread-safe:
+Para inicialización lazy thread-safe (típico en singletons):
 
 ```python
 import threading
@@ -542,11 +726,22 @@ class Singleton:
 
     @classmethod
     def get_instance(cls):
-        if cls._instance is None:  # Primera comprobación sin lock
+        if cls._instance is None:           # primera comprobación SIN lock (rápido)
             with cls._lock:
-                if cls._instance is None:  # Segunda comprobación con lock
+                if cls._instance is None:   # segunda comprobación CON lock (correcto)
                     cls._instance = cls()
         return cls._instance
+
+# Uso desde múltiples threads
+import threading
+def crear():
+    s = Singleton.get_instance()
+    print(f"{threading.current_thread().name}: instancia = {id(s)}")
+
+hilos = [threading.Thread(target=crear) for _ in range(5)]
+for t in hilos: t.start()
+for t in hilos: t.join()
+# Todos ven el mismo id() (misma instancia)
 ```
 
 ---
@@ -555,43 +750,39 @@ class Singleton:
 
 | Primitivo | Uso principal | Comportamiento |
 |-----------|---------------|----------------|
-| Lock | Exclusión mutua básica | Un thread a la vez |
-| RLock | Exclusión mutua reentrante | Mismo thread puede readquirir |
-| Semaphore | Limitar acceso concurrente | N threads simultáneos |
-| Condition | Esperar condiciones | wait/notify pattern |
-| Event | Señalización simple | Flag compartido |
-| Barrier | Punto de sincronización | Esperar N threads |
+| `Lock` | Exclusión mutua básica | Un thread a la vez |
+| `RLock` | Exclusión mutua reentrante | Mismo thread puede readquirir |
+| `Semaphore` | Limitar acceso concurrente | N threads simultáneos |
+| `BoundedSemaphore` | Como Semaphore, con chequeo | Lanza error si se libera demás |
+| `Condition` | Esperar condiciones | `wait`/`notify` pattern |
+| `Event` | Señalización simple | Flag compartido |
+| `Barrier` | Punto de sincronización | Esperar a N threads |
 
 ### Cuándo usar cada uno
 
-- **Lock:** Proteger modificación de datos compartidos
-- **RLock:** Cuando métodos que usan lock llaman a otros métodos que también lo usan
-- **Semaphore:** Pool de recursos, rate limiting
-- **Condition:** Productor-consumidor, esperar estados específicos
-- **Event:** Start/stop signals, one-time notifications
-- **Barrier:** Algoritmos por fases, sincronización de grupo
+- **Lock**: proteger modificación de datos compartidos
+- **RLock**: cuando métodos que usan lock llaman a otros métodos que también lo usan
+- **Semaphore**: pool de recursos, rate limiting
+- **Condition**: productor-consumidor, esperar estados específicos
+- **Event**: start/stop signals, one-time notifications
+- **Barrier**: algoritmos por fases, sincronización de grupo
 
 ---
 
 ## Conceptos clave
 
-1. **Siempre usar `with` para locks** - Garantiza release incluso con excepciones.
-
-2. **Minimizar secciones críticas** - Menos tiempo con lock = mejor concurrencia.
-
-3. **Evitar locks anidados** - Principal causa de deadlocks.
-
-4. **Orden consistente** - Si necesitás múltiples locks, siempre en el mismo orden.
-
-5. **Preferir Queue para comunicación** - Es thread-safe y más simple.
-
-6. **wait() siempre en un loop** - Las condiciones pueden cambiar entre notify y wake.
+1. **Siempre usar `with` para locks**: garantiza release incluso con excepciones
+2. **Minimizar secciones críticas**: menos tiempo con lock = mejor concurrencia
+3. **Evitar locks anidados**: principal causa de deadlocks
+4. **Orden consistente**: si necesitás múltiples locks, siempre en el mismo orden
+5. **Preferir Queue para comunicación**: es thread-safe y más simple
+6. **`wait()` siempre en un loop `while`**: las condiciones pueden cambiar entre notify y wake (spurious wakeups)
 
 ---
 
 ## Preparación para la próxima clase
 
-En la clase 10 vamos a aplicar todas estas primitivas a problemas clásicos de concurrencia: productor-consumidor con buffer acotado, filósofos comensales (deadlock y soluciones), lectores-escritores y patrones de sincronización por fases.
+En la **clase 12 (Sincronización II)** vamos a aplicar todas estas primitivas a problemas clásicos de concurrencia: productor-consumidor con buffer acotado, filósofos comensales (deadlock y soluciones), lectores-escritores y patrones de sincronización por fases.
 
 ---
 

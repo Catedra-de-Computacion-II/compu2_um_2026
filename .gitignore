@@ -13,7 +13,7 @@
 #clase_08_multiprocessing_fundamentos/
 #clase_09_multiprocessing_avanzado/
 #clase_10_threading/
-clase_11_sincronizacion_1/
+#clase_11_sincronizacion_1/
 clase_12_sincronizacion_2/
 clase_13_redes_fundamentos/
 clase_14_sockets_tcp/
@@ -36,6 +36,7 @@ clase_30_cierre/
 
 # === Trabajos prácticos (liberar cuando corresponda) ===
 trabajos_practicos/
+!trabajos_practicos/TP1_monitoreo/
 
 # === Material interno docente ===
 _old_reference/

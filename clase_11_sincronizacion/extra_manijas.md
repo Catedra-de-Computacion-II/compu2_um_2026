@@ -1,4 +1,4 @@
-# Clase 11: Sincronización Avanzada - Extra Manijas
+# Clase 11: Sincronización - Extra Manijas
 
 Material opcional para profundizar.
 
@@ -263,52 +263,73 @@ x = d.popleft()  # Atómico
 
 ## Problemas clásicos de concurrencia
 
-### Dining Philosophers
+### Filósofos comensales: la solución del camarero
+
+Las dos soluciones vistas en clase —jerarquía de recursos y `Semaphore(N-1)`— evitan el deadlock pero no dicen nada sobre equidad: un filósofo con vecinos lentos puede comer mucho más que el resto.
+
+Una tercera vía es introducir un árbitro que otorgue permiso explícito, con estados por filósofo. Es más código, pero permite razonar sobre inanición:
 
 ```python
 import threading
 import time
 import random
 
-class Philosopher(threading.Thread):
-    def __init__(self, id, left_fork, right_fork):
-        super().__init__()
-        self.id = id
-        self.left_fork = left_fork
-        self.right_fork = right_fork
+NUM = 5
+PENSANDO, HAMBRIENTO, COMIENDO = 0, 1, 2
 
-    def run(self):
-        for _ in range(3):
-            self.think()
-            self.eat()
+class Mesa:
+    def __init__(self):
+        self.estado = [PENSANDO] * NUM
+        self.cond = threading.Condition()
+        self.comidas = [0] * NUM
 
-    def think(self):
-        print(f"Philosopher {self.id} is thinking")
-        time.sleep(random.uniform(0.1, 0.5))
+    def _puede_comer(self, i):
+        izq, der = (i - 1) % NUM, (i + 1) % NUM
+        return (self.estado[i] == HAMBRIENTO
+                and self.estado[izq] != COMIENDO
+                and self.estado[der] != COMIENDO)
 
-    def eat(self):
-        # Orden consistente para evitar deadlock
-        first = min(self.left_fork, self.right_fork)
-        second = max(self.left_fork, self.right_fork)
+    def _intentar(self, i):
+        if self._puede_comer(i):
+            self.estado[i] = COMIENDO
+            self.cond.notify_all()
 
-        with first:
-            with second:
-                print(f"Philosopher {self.id} is eating")
-                time.sleep(random.uniform(0.1, 0.3))
+    def tomar_tenedores(self, i):
+        with self.cond:
+            self.estado[i] = HAMBRIENTO
+            self._intentar(i)
+            while self.estado[i] != COMIENDO:
+                self.cond.wait()
+            self.comidas[i] += 1
 
-# Setup
-NUM_PHILOSOPHERS = 5
-forks = [threading.Lock() for _ in range(NUM_PHILOSOPHERS)]
-philosophers = [
-    Philosopher(i, forks[i], forks[(i + 1) % NUM_PHILOSOPHERS])
-    for i in range(NUM_PHILOSOPHERS)
-]
+    def dejar_tenedores(self, i):
+        with self.cond:
+            self.estado[i] = PENSANDO
+            # Darle una oportunidad a los vecinos que esperaban
+            self._intentar((i - 1) % NUM)
+            self._intentar((i + 1) % NUM)
 
-for p in philosophers:
-    p.start()
-for p in philosophers:
-    p.join()
+
+def filosofo(i, mesa, rondas=5):
+    for _ in range(rondas):
+        time.sleep(random.uniform(0.01, 0.05))
+        mesa.tomar_tenedores(i)
+        time.sleep(random.uniform(0.02, 0.06))
+        mesa.dejar_tenedores(i)
+
+
+mesa = Mesa()
+hilos = [threading.Thread(target=filosofo, args=(i, mesa)) for i in range(NUM)]
+for t in hilos: t.start()
+for t in hilos: t.join()
+print(f"Comidas por filósofo: {mesa.comidas}")
 ```
+
+Acá no hay un lock por tenedor: el estado de la mesa entero se protege con una sola `Condition`, y un filósofo pasa a `COMIENDO` solo si ninguno de sus vecinos lo está. Es el patrón *monitor* aplicado al problema.
+
+> **El error clásico**: intentar el orden consistente ordenando los objetos `Lock` en vez de sus índices. `min(lock_a, lock_b)` compara direcciones de memoria —un orden real, pero arbitrario y sin relación con la topología de la mesa—, así que dos filósofos pueden terminar tomando sus tenedores en órdenes opuestos y el ciclo de espera reaparece. El orden total tiene que definirse sobre un identificador estable del recurso.
+
+Ni siquiera esta versión garantiza ausencia de inanición: `notify_all` despierta a todos y el que gana depende del scheduler. Para eso haría falta encolar a los hambrientos y atenderlos en orden de llegada.
 
 ### Sleeping Barber
 

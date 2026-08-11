@@ -286,7 +286,7 @@ La solución es proteger la operación con un `Lock`.
 
 | Puntaje | Diagnóstico |
 |---------|-------------|
-| 27-30 correctas | Excelente dominio del tema. Avanzá a la clase 10 (Sincronización I) |
+| 27-30 correctas | Excelente dominio del tema. Avanzá a la clase 11 (Sincronización) |
 | 21-26 | Buen nivel. Repasá los temas donde fallaste |
 | 14-20 | Nivel intermedio. Releé el contenido y hacé los ejercicios básicos primero |
 | < 14 | Repasá el contenido completo. Consultá con el docente antes de la próxima clase |

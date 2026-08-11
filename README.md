@@ -29,8 +29,8 @@
 │
 ├── clase_01_docker_intro/      # Presentación + Docker básico
 ├── clase_02_docker_aplicado/   # Volúmenes, redes, compose
-├── clase_03_procesos/          # fork, exec, wait
-├── ...                         # (28 clases en total)
+├── clase_03_procesos_fundamentos/  # Modelo de proceso
+├── ...                         # (29 clases en total)
 │
 ├── trabajos_practicos/
 │   ├── TP1_monitoreo/         # Sistema de monitoreo concurrente
@@ -61,26 +61,38 @@ clase_XX_tema/
 
 ## Cronograma resumido
 
-### Primer Cuatrimestre (13 clases)
-| Clase | Fecha | Tema |
-|-------|-------|------|
-| 1 | 17/03 | Docker Intro |
-| 2 | 31/03 | Docker Aplicado |
-| 3 | 07/04 | Procesos + Quiz Bloque 0 |
-| 4-6 | Abril | Pipes, Señales, Multiprocessing |
-| 7-9 | Mayo | Sincronización, Threading |
-| 10 | 26/05 | Redes + **Entrega TP1** |
-| 11-13 | Junio | Sockets TCP, Servidores |
+### Primer Cuatrimestre
 
-### Segundo Cuatrimestre (15 clases)
-| Clase | Fecha | Tema |
-|-------|-------|------|
-| 14-16 | Agosto | UDP, IPv6, I/O Multiplexing |
-| 17 | 25/08 | HTTP + FastAPI |
-| 18-21 | Sept | Asyncio + **Entrega TP2** |
-| 22-24 | Octubre | concurrent.futures, Celery |
-| 25-27 | Oct-Nov | Docker Compose, Integración |
-| 28 | 10/11 | Cierre |
+**Bloque: concurrencia local**
+
+| Clase | Tema |
+|-------|------|
+| 1-2 | Docker: intro y aplicado |
+| 3-4 | Procesos: fundamentos, fork/exec/wait |
+| 5-7 | Pipes, señales, mmap y memoria compartida |
+| 8-9 | Multiprocessing: fundamentos y avanzado |
+| 10 | Threading |
+| 11 | Sincronización (primitivos y problemas clásicos) |
+
+**Bloque: redes** (arranca en el primer cuatrimestre y sigue en el segundo)
+
+| Clase | Tema |
+|-------|------|
+| 12 | Redes: fundamentos |
+| 13-14 | Sockets TCP, servidores concurrentes |
+
+### Segundo Cuatrimestre
+
+| Clase | Tema |
+|-------|------|
+| 15-17 | UDP, IPv6, I/O multiplexing |
+| 18 | HTTP + FastAPI |
+| 19-22 | Async: fundamentos, asyncio, práctica |
+| 23-25 | concurrent.futures, Celery |
+| 26-28 | Compose avanzado, integración |
+| 29 | Cierre |
+
+> Las fechas se fijan al inicio del ciclo. La numeración corresponde a las carpetas del repositorio.
 
 ---
 

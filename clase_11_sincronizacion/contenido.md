@@ -1,8 +1,10 @@
-# Clase 11: Sincronización Avanzada - Coordinando la Concurrencia
+# Clase 11: Sincronización - Coordinando la Concurrencia
 
 ## Introducción: el desafío de la coordinación
 
-En la clase anterior vimos los conceptos básicos de threading y `Lock`, el primitivo de sincronización más simple. Ahora profundizamos: las primitivas avanzadas (`RLock`, `Condition`, `Semaphore`, `Event`, `Barrier`), cómo aparecen los **deadlocks** y patrones más complejos.
+En la clase anterior vimos los conceptos básicos de threading y `Lock`, el primitivo de sincronización más simple. Ahora profundizamos: las primitivas avanzadas (`RLock`, `Condition`, `Semaphore`, `Event`, `Barrier`), cómo aparecen los **deadlocks**, y cómo se combinan para resolver los problemas clásicos de la concurrencia.
+
+Esta es la última clase del bloque de concurrencia local. Cierra el recorrido que empezó en procesos y siguió por IPC y threading: a partir de la próxima, los procesos que coordinamos dejan de estar en la misma máquina.
 
 La sincronización es quizás el aspecto más difícil de la programación concurrente. Los bugs son sutiles, difíciles de reproducir, y pueden manifestarse solo bajo ciertas condiciones de timing. Entender profundamente los primitivos y cuándo usar cada uno es esencial para escribir código concurrente robusto.
 
@@ -713,6 +715,72 @@ for t in hilos: t.join()
 
 > **Atención**: esta implementación favorece a los lectores (writer starvation posible). Variantes más justas existen pero son más complejas.
 
+### Filósofos comensales
+
+El problema clásico de Dijkstra: cinco filósofos alrededor de una mesa, un tenedor entre cada par. Para comer, un filósofo necesita los dos tenedores adyacentes. Es el ejemplo canónico de deadlock por espera circular.
+
+La versión ingenua —cada uno toma primero el tenedor de su izquierda— se cuelga apenas los cinco toman su izquierdo a la vez: cada uno espera el derecho, que su vecino ya tiene.
+
+```python
+import threading
+import time
+import random
+
+NUM_FILOSOFOS = 5
+
+class Filosofo(threading.Thread):
+    def __init__(self, id, tenedores):
+        super().__init__()
+        self.id = id
+        self.tenedores = tenedores
+        # Índices de los tenedores, NO los locks
+        self.izq = id
+        self.der = (id + 1) % NUM_FILOSOFOS
+
+    def run(self):
+        for _ in range(3):
+            self.pensar()
+            self.comer()
+
+    def pensar(self):
+        print(f"Filósofo {self.id} piensa")
+        time.sleep(random.uniform(0.1, 0.5))
+
+    def comer(self):
+        # Jerarquía de recursos: siempre tomar el tenedor de MENOR índice
+        # primero. Esto rompe la espera circular.
+        primero, segundo = sorted((self.izq, self.der))
+
+        with self.tenedores[primero]:
+            with self.tenedores[segundo]:
+                print(f"Filósofo {self.id} come (tenedores {primero} y {segundo})")
+                time.sleep(random.uniform(0.1, 0.3))
+
+
+tenedores = [threading.Lock() for _ in range(NUM_FILOSOFOS)]
+filosofos = [Filosofo(i, tenedores) for i in range(NUM_FILOSOFOS)]
+
+for f in filosofos: f.start()
+for f in filosofos: f.join()
+print("Todos terminaron de comer")
+```
+
+> **Cuidado con un error frecuente**: ordenar los objetos `Lock` en vez de sus índices. `sorted((lock_a, lock_b))` no compila —`Lock` no es ordenable— y `min()`/`max()` sobre locks ordena por dirección de memoria, que no guarda relación con la posición en la mesa. El orden debe establecerse sobre un identificador estable del recurso: acá, el índice del tenedor.
+
+Es el mismo principio de "orden consistente" que vimos en la sección de deadlock, aplicado a N recursos: si todos los threads adquieren los locks en un orden total fijo, no puede formarse un ciclo de espera.
+
+Otra solución, con `Semaphore`: permitir que a lo sumo N-1 filósofos intenten comer a la vez. Con cuatro comensales y cinco tenedores, al menos uno siempre consigue el par.
+
+```python
+comedor = threading.Semaphore(NUM_FILOSOFOS - 1)
+
+def comer(self):
+    with comedor:                      # como mucho 4 adentro
+        with self.tenedores[self.izq]:
+            with self.tenedores[self.der]:
+                print(f"Filósofo {self.id} come")
+```
+
 ### Double-checked locking
 
 Para inicialización lazy thread-safe (típico en singletons):
@@ -780,9 +848,28 @@ for t in hilos: t.join()
 
 ---
 
+## Problemas clásicos: dónde encontrarlos
+
+Los cuatro problemas canónicos de la concurrencia están cubiertos entre el contenido y los ejercicios de esta clase:
+
+| Problema | Dónde | Primitivo central |
+|----------|-------|-------------------|
+| Productor-consumidor con buffer acotado | Contenido + ejercicio 2 | `Condition` |
+| Sincronización por fases | Ejercicio 3 | `Barrier` |
+| Lectores-escritores | Contenido + ejercicio 5 | `Lock` (dos) |
+| Filósofos comensales | Contenido + ejercicio 7 | `Lock` con orden total |
+
+Vale la pena hacerlos todos: son el vocabulario compartido con el que se discuten los problemas de concurrencia, y reaparecen —con otro nombre y otra escala— en sistemas distribuidos.
+
+---
+
 ## Preparación para la próxima clase
 
-En la **clase 12 (Sincronización II)** vamos a aplicar todas estas primitivas a problemas clásicos de concurrencia: productor-consumidor con buffer acotado, filósofos comensales (deadlock y soluciones), lectores-escritores y patrones de sincronización por fases.
+Con esta clase cerramos el bloque de **concurrencia local**: procesos, IPC, threading y sincronización. Todo lo que coordinamos hasta acá vivía dentro de una misma máquina, compartiendo memoria o descriptores.
+
+En la **clase 12 (Redes: fundamentos)** empieza el bloque de comunicación en red: modelo de capas, direccionamiento, puertos, y las diferencias entre TCP y UDP. A partir de ahí, los procesos que sincronizamos van a estar en máquinas distintas, sin memoria compartida y con un canal que puede perder, duplicar o reordenar lo que mandamos.
+
+Muchas de las ideas de esta clase sobreviven al cambio de escala: los problemas de coordinación no desaparecen, se vuelven más difíciles.
 
 ---
 

@@ -1,4 +1,4 @@
-# Clase 11: Sincronización Avanzada - Autoevaluación
+# Clase 11: Sincronización - Autoevaluación
 
 Responde estas preguntas para verificar tu comprensión. Las respuestas están al final.
 

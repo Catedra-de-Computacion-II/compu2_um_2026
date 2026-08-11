@@ -1,4 +1,4 @@
-# Clase 11: Sincronización Avanzada - Ejercicios Prácticos
+# Clase 11: Sincronización - Ejercicios Prácticos
 
 ## Ejercicio 1: Detectando race conditions
 
@@ -499,6 +499,75 @@ version_corregida()
 
 ---
 
+## Ejercicio 7: Filósofos comensales
+
+### Objetivo
+
+Reproducir un deadlock y después eliminarlo, sobre el problema clásico de Dijkstra.
+
+### Especificación
+
+Cinco filósofos, cinco tenedores, uno entre cada par de vecinos. Para comer hacen falta los dos tenedores adyacentes.
+
+```python
+#!/usr/bin/env python3
+"""Filósofos comensales: del deadlock a la solución."""
+import threading
+import time
+import random
+
+NUM = 5
+
+# ---- Parte A: la versión que se cuelga ----
+# Cada filósofo toma primero su tenedor izquierdo, después el derecho.
+#
+# El deadlock necesita que los cinco tengan su tenedor izquierdo al mismo
+# tiempo. Con sleeps al azar eso pasa rara vez (probalo: puede que corra
+# entero muchas veces seguidas). Para hacerlo determinista forzamos ese
+# estado con una Barrier: nadie pide el derecho hasta que todos tengan
+# el izquierdo. Es hacer trampa, pero muestra el escenario exacto que en
+# producción aparece una vez cada mil corridas.
+
+tomaron_izq = threading.Barrier(NUM)
+
+def filosofo_ingenuo(id, tenedores):
+    for _ in range(3):
+        izq, der = id, (id + 1) % NUM
+        with tenedores[izq]:
+            tomaron_izq.wait()        # los 5 ya tienen su izquierdo
+            with tenedores[der]:      # ...y ninguno va a conseguir el derecho
+                print(f"Filósofo {id} come")
+
+# TODO Parte A: correr esto y confirmar que se cuelga (se cuelga siempre).
+# Matalo con Ctrl+C. ¿Cuáles de las cuatro condiciones de Coffman se
+# cumplen acá? Después sacá la barrera y corrélo 10 veces: ¿cuántas se
+# cuelga? Esa diferencia es por qué los deadlocks son difíciles de testear.
+
+# ---- Parte B: jerarquía de recursos ----
+# TODO: reimplementar de modo que cada filósofo tome siempre primero el
+# tenedor de MENOR índice. Verificar que ya no se cuelga.
+# Cuidado: hay que ordenar los ÍNDICES, no los objetos Lock.
+
+# ---- Parte C: limitar comensales ----
+# TODO: volver a la versión ingenua (izquierdo primero) pero envolver la
+# comida en un Semaphore(NUM - 1), de modo que como mucho 4 filósofos
+# intenten comer a la vez. Verificar que tampoco se cuelga.
+# ¿Por qué basta con N-1?
+
+# ---- Parte D: comparación ----
+# TODO: medir cuánto tarda cada solución en completar 3 comidas por
+# filósofo. ¿Alguna deja a algún filósofo comiendo mucho menos que
+# los demás? ¿Cómo lo medirías?
+```
+
+### Preguntas
+
+1. En la parte A, ¿por qué la `Barrier` convierte un deadlock esporádico en uno seguro? Notá que la barrera no crea el bug: solo fuerza el entrelazado que ya era posible.
+2. La jerarquía de recursos rompe la espera circular. ¿Cuál de las otras tres condiciones de Coffman rompe la solución del semáforo?
+3. Ninguna de las dos soluciones garantiza que todos los filósofos coman la misma cantidad de veces. ¿Es eso un deadlock, starvation, o ninguna de las dos?
+
+---
+
 ## Verificación del ejercicio obligatorio
 
 ### Ejercicio 5: Readers-Writers Lock
@@ -520,10 +589,6 @@ Tu implementación debe:
 ### Monitor de recursos
 
 Implementá un monitor que muestre el estado de locks/semáforos en tiempo real.
-
-### Dining philosophers
-
-Implementá el problema clásico de los filósofos cenando con prevención de deadlock.
 
 ### Rate limiter thread-safe
 

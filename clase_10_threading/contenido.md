@@ -649,7 +649,7 @@ faulthandler.enable()
 
 ## Preparación para la próxima clase
 
-En la **clase 10 (Sincronización I)** vamos a profundizar en los primitivos de sincronización que solo mencionamos acá:
+En la **clase 11 (Sincronización)** vamos a profundizar en los primitivos que solo mencionamos acá:
 
 - `RLock` para locks reentrantes
 - `Condition` para esperar/notificar condiciones complejas
@@ -657,7 +657,7 @@ En la **clase 10 (Sincronización I)** vamos a profundizar en los primitivos de 
 - `Semaphore` para acceso concurrente limitado a N
 - `Barrier` para sincronización por fases
 
-Y en la **clase 11 (Sincronización II)** vamos a aplicar todo eso a problemas clásicos: productor-consumidor, filósofos comensales, lectores-escritores.
+Y los vamos a aplicar a los problemas clásicos de la concurrencia: productor-consumidor, filósofos comensales, lectores-escritores. Con eso cerramos el bloque de concurrencia local.
 
 ---
 

@@ -173,6 +173,13 @@ b) Tareas cortas y acotadas: una petición, una respuesta, se libera el worker
 c) Cualquier carga
 d) Solo para trabajo CPU-bound
 
+**Pregunta 22b.** ¿Qué devuelve `pool.submit(funcion, arg)`?
+
+a) El valor que devuelve `funcion`, esperando a que termine
+b) Un `Future`: un recibo del resultado que todavía no está. Vuelve enseguida
+c) `None`
+d) El thread que va a ejecutar la tarea
+
 **Pregunta 23.** ¿Qué pasa si `atender()` lanza una excepción dentro de `pool.submit()`?
 
 a) El pool se detiene
@@ -264,6 +271,7 @@ d) Servidor secuencial
 | 20 | b | Esperan, no son rechazados |
 | 21 | b | Ocupan el worker toda la sesión |
 | 22 | b | Tareas cortas y acotadas |
+| 22b | b | Un `Future`; `submit()` no bloquea |
 | 23 | b | Silenciada en el `Future` |
 | 24 | b | La escalera del servidor secuencial |
 | 25 | b | El tiempo de atención es lo que discrimina |

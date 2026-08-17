@@ -228,7 +228,42 @@ Medido con 60 hijos muriendo simultáneamente: sin el bucle quedan zombies en la
 
 Las dos estrategias anteriores tienen el mismo defecto de fondo: **crean un recurso por cliente, sin techo**. Diez mil clientes, diez mil threads. Es una invitación a que un pico de tráfico voltee la máquina.
 
-Un pool fija la cantidad de workers de antemano:
+Un pool fija la cantidad de workers de antemano.
+
+### Interludio: `concurrent.futures`
+
+En el ejercicio obligatorio de la clase 10 construyeron un pool de threads a mano: unos cuantos `threading.Thread` consumiendo URLs de una `queue.Queue`, con su lógica de arranque, de parada y de recolección de resultados. Funcionaba, y valía la pena escribirlo para entender qué hay adentro.
+
+La biblioteca estándar ya trae eso resuelto en `concurrent.futures`, y acá lo necesitamos. La clase 23 lo retoma en profundidad —`ProcessPoolExecutor`, `map`, `as_completed`, manejo de excepciones—; por ahora alcanza con tres ideas.
+
+**Un `Executor` es un pool de workers con una cola adentro.** Se crea diciendo cuántos workers querés:
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+with ThreadPoolExecutor(max_workers=4) as pool:
+    ...
+# al salir del with, espera a que terminen todas las tareas pendientes
+```
+
+**`submit()` encola una tarea y devuelve enseguida.** No espera a que se ejecute:
+
+```python
+futuro = pool.submit(mi_funcion, arg1, arg2)   # vuelve inmediatamente
+```
+
+**Un `Future` es el resultado que todavía no está.** Es un recibo: podés preguntarle si terminó, o pedirle el valor (y ahí sí se bloquea hasta que esté):
+
+```python
+futuro.done()      # ¿ya terminó? True/False, no bloquea
+futuro.result()    # el valor devuelto; BLOQUEA hasta que esté listo
+```
+
+Comparado con lo que escribieron en la clase 10: `ThreadPoolExecutor` es la `queue.Queue` más los threads más el arranque y la parada, en una línea. Los workers se reutilizan entre tareas, así que no se paga la creación de un thread por cada una.
+
+Un detalle que va a importar enseguida: **si la tarea lanza una excepción, no explota nada visible.** La excepción queda guardada dentro del `Future` y solo aparece cuando alguien llama a `result()`. En un servidor que nunca mira los `Future`, un error desaparece sin dejar rastro.
+
+### El servidor con pool
 
 ```python
 #!/usr/bin/env python3
@@ -269,7 +304,7 @@ Es el mismo problema del servidor secuencial, solo que corrido veinte lugares.
 
 Los pools funcionan bien cuando las tareas son **cortas y acotadas**: una petición, una respuesta, se libera el worker. Es el modelo de HTTP sin keep-alive. Para conexiones largas hacen falta otras herramientas.
 
-Un detalle práctico: `pool.submit()` no propaga las excepciones. Si `atender()` explota, el error queda silenciado dentro del `Future` y no te enterás. Conviene envolver:
+Y acá se ve el problema de los `Future` que mencionamos arriba: este servidor **nunca llama a `result()`**, así que si `atender()` explota, el error queda guardado en un `Future` que nadie mira. El servidor sigue como si nada y el cliente ve una conexión cortada sin explicación. Conviene envolver:
 
 ```python
 def atender_seguro(conn, direccion):

@@ -408,7 +408,9 @@ print("\nTodos los requests atendidos")
 
 **Objetivo:** Construir un descargador real de URLs usando threads.
 
-**Consigna:** dado un conjunto de URLs, descargarlas en paralelo usando un pool fijo de threads (sin `ThreadPoolExecutor`, que se ve en clase 23). Usá `threading.Thread` y `queue.Queue`. Manejar errores de red. Mostrar estadísticas al final.
+**Consigna:** dado un conjunto de URLs, descargarlas en paralelo usando un pool fijo de threads, **construido a mano** con `threading.Thread` y `queue.Queue`. Manejar errores de red. Mostrar estadísticas al final.
+
+> La biblioteca estándar ya trae esto resuelto en `ThreadPoolExecutor`, que vas a usar a partir de la clase 14 y ver en detalle en la 23. Acá lo escribimos a mano a propósito: cuando después uses el pool de la stdlib, vas a saber exactamente qué hay adentro.
 
 ```python
 import threading

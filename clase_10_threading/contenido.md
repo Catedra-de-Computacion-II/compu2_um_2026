@@ -303,7 +303,7 @@ Sirve threads para:
 - Servidores que esperan conexiones
 - Interfaces de usuario que no deben bloquearse
 
-No sirve threads para:
+No sirve threads para (en el build con GIL, que es el default):
 - Comprimir/descomprimir archivos (CPU-bound)
 - Procesamiento de imágenes (CPU-bound)
 - Cálculos numéricos pesados (CPU-bound)
@@ -316,8 +316,8 @@ Lo que vimos hasta acá describe el comportamiento **tradicional** de CPython. P
 
 - **2023 (julio)**: el Steering Council de Python acepta la [PEP 703 — Making the Global Interpreter Lock Optional in CPython](https://peps.python.org/pep-0703/). La propuesta plantea que se pueda compilar Python sin GIL.
 - **Python 3.13 (octubre 2024)**: aparece el **build experimental "free-threaded"** (también llamado "no-GIL" o `nogil`). Es un binario alternativo que se baja aparte; el default sigue siendo el clásico con GIL.
-- **Python 3.14 (octubre 2025)**: con la [PEP 779](https://peps.python.org/pep-0779/), el free-threaded build deja de ser "experimental" y pasa a "soportado". Sigue siendo opcional (no es el default), pero el camino está trazado.
-- **Futuro**: Phase III del plan es que el free-threaded build sea el default y, eventualmente, el único.
+- **Python 3.14 (octubre 2025)**: con la [PEP 779](https://peps.python.org/pep-0779/) —aprobada por el Steering Council en junio de 2025— el free-threaded build deja de ser "experimental" y pasa a **Fase II: oficialmente soportado**. Sigue siendo opcional (no es el default), pero el camino está trazado.
+- **Futuro**: la Fase III sería que el free-threaded build pase a ser el default. **No tiene PEP ni fecha comprometida**: las estimaciones informadas hablan de 2028-2029, y bien puede cambiar.
 
 **¿Qué cambia en la práctica?**
 

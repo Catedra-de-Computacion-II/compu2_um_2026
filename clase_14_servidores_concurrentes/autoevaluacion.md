@@ -9,38 +9,38 @@
 
 **Pregunta 1.** ¿Por qué los threads sirven para un servidor de red aunque no sirvan para cálculo numérico (en el build con GIL)?
 
-a) Porque los sockets son más rápidos que la CPU
-b) Porque el GIL se libera durante las operaciones de I/O
-c) Porque los servidores usan menos memoria
-d) No sirven: siempre hay que usar procesos
+a) Porque el GIL se libera durante las operaciones de I/O
+b) Porque los sockets son más rápidos que la CPU
+c) No sirven: siempre hay que usar procesos
+d) Porque los servidores usan menos memoria
 
 **Pregunta 2.** Un servidor de red es principalmente:
 
-a) CPU-bound
-b) I/O-bound
-c) Memory-bound
+a) Memory-bound
+b) CPU-bound
+c) I/O-bound
 d) Ninguna: no aplica la clasificación
 
 **Pregunta 3.** ¿Desde qué versión de Python el build free-threaded dejó de ser experimental?
 
-a) 3.12
-b) 3.13
-c) 3.14
-d) Todavía es experimental
+a) Todavía es experimental
+b) 3.12
+c) 3.13
+d) 3.14
 
 **Pregunta 4.** El build free-threaded es, hoy:
 
-a) El binario por defecto que baja todo el mundo
-b) Oficialmente soportado, pero opcional: hay que instalarlo aparte
+a) Oficialmente soportado, pero opcional: hay que instalarlo aparte
+b) Fue abandonado
 c) Experimental y desaconsejado para producción
-d) Fue abandonado
+d) El binario por defecto que baja todo el mundo
 
 **Pregunta 5.** Si tu servidor corre en un build free-threaded, ¿qué cambia para el trabajo I/O-bound?
 
-a) Se vuelve mucho más rápido
-b) Prácticamente nada: los threads ya funcionaban bien, porque el GIL se libera esperando
-c) Deja de funcionar
-d) Hay que reescribirlo con procesos
+a) Deja de funcionar
+b) Se vuelve mucho más rápido
+c) Hay que reescribirlo con procesos
+d) Prácticamente nada: los threads ya funcionaban bien, porque el GIL se libera esperando
 
 ---
 
@@ -48,29 +48,29 @@ d) Hay que reescribirlo con procesos
 
 **Pregunta 6.** ¿Cuál es el cambio esencial entre el servidor secuencial y el de threads?
 
-a) Usar sockets distintos
+a) Aumentar el backlog de `listen()`
 b) Que el bucle principal delegue y vuelva inmediatamente a `accept()`
-c) Aumentar el backlog de `listen()`
+c) Usar sockets distintos
 d) Usar `SO_REUSEADDR`
 
 **Pregunta 7.** ¿Para qué sirve `daemon=True` al crear el thread?
 
-a) Le da más prioridad
-b) Hace que el thread no impida que el programa termine
+a) Hace que el thread no impida que el programa termine
+b) Le da más prioridad
 c) Lo ejecuta como root
 d) Lo reinicia si falla
 
 **Pregunta 8.** Dos threads hacen `contador += 1` sin lock. ¿Cuál es el problema?
 
-a) Ninguno: el GIL lo hace atómico
-b) La operación son varios pasos (leer, sumar, escribir) y pueden intercalarse
+a) Solo falla en free-threaded
+b) Ninguno: el GIL lo hace atómico
 c) Python no permite variables globales en threads
-d) Solo falla en free-threaded
+d) La operación son varios pasos (leer, sumar, escribir) y pueden intercalarse
 
 **Pregunta 9.** ¿Cuál es el costo principal de un thread por cliente?
 
-a) Cada thread reserva memoria para su stack y compite por el planificador
-b) Los threads no pueden usar sockets
+a) Los threads no pueden usar sockets
+b) Cada thread reserva memoria para su stack y compite por el planificador
 c) Cada thread necesita su propio puerto
 d) No tiene costo
 
@@ -80,66 +80,66 @@ d) No tiene costo
 
 **Pregunta 10.** Tras un `fork()`, ¿en cuántos procesos existe el descriptor de la conexión?
 
-a) Solo en el padre
-b) Solo en el hijo
-c) En los dos
-d) En ninguno: hay que volver a abrirlo
+a) En ninguno: hay que volver a abrirlo
+b) En los dos
+c) Solo en el hijo
+d) Solo en el padre
 
 **Pregunta 11.** ¿Qué debe cerrar cada proceso después del `fork()`?
 
-a) El padre cierra `conn`; el hijo cierra el socket que escucha
-b) El padre cierra el socket que escucha; el hijo cierra `conn`
-c) Ninguno cierra nada
-d) Los dos cierran todo
+a) Los dos cierran todo
+b) Ninguno cierra nada
+c) El padre cierra el socket que escucha; el hijo cierra `conn`
+d) El padre cierra `conn`; el hijo cierra el socket que escucha
 
 **Pregunta 12.** Corrés un servidor fork en Python **sin** `conn.close()` en el padre y contás descriptores. ¿Qué observás?
 
-a) Crecen sin parar hasta agotar el límite
-b) No crecen: al reasignarse `conn` en la próxima vuelta, CPython libera el objeto y cierra el descriptor
-c) El servidor falla al segundo cliente
+a) No crecen: al reasignarse `conn` en la próxima vuelta, CPython libera el objeto y cierra el descriptor
+b) El servidor falla al segundo cliente
+c) Crecen sin parar hasta agotar el límite
 d) Crecen solo con más de 1000 clientes
 
 **Pregunta 13.** Siguiendo la anterior, ¿por qué sigue siendo correcto escribir el `close()` explícito?
 
-a) Por costumbre, no hace falta
-b) Porque en C hace falta, porque si el padre retiene la referencia sí se filtra, y porque no toda implementación de Python usa conteo de referencias
-c) Porque acelera el servidor
-d) Porque lo exige POSIX
+a) Porque lo exige POSIX
+b) Por costumbre, no hace falta
+c) Porque en C hace falta, porque si el padre retiene la referencia sí se filtra, y porque no toda implementación de Python usa conteo de referencias
+d) Porque acelera el servidor
 
 **Pregunta 14.** ¿Qué es un proceso zombie?
 
-a) Un proceso que consume 100% de CPU
+a) Un proceso sin terminal asociada
 b) Un proceso terminado cuyo padre todavía no llamó a `wait()`
-c) Un proceso sin terminal asociada
+c) Un proceso que consume 100% de CPU
 d) Un proceso que quedó sin memoria
 
 **Pregunta 15.** Un servidor fork sin manejo de `SIGCHLD` atiende 40 clientes. ¿Cuántos zombies quedan?
 
 a) Ninguno: el kernel los limpia solo
-b) Los 40
+b) Depende de la carga
 c) Solo el último
-d) Depende de la carga
+d) Los 40
 
 **Pregunta 16.** ¿Por qué el handler de `SIGCHLD` necesita un bucle `while`?
 
 a) Por elegancia
 b) Porque las señales no se encolan: si varios hijos mueren casi a la vez, llega un solo aviso
-c) Porque `waitpid()` siempre falla la primera vez
-d) No lo necesita
+c) No lo necesita
+d) Porque `waitpid()` siempre falla la primera vez
 
 **Pregunta 17.** ¿Qué hace `WNOHANG` en `os.waitpid(-1, os.WNOHANG)`?
 
 a) Espera indefinidamente
-b) Hace que la llamada no bloquee si no hay hijos terminados
-c) Mata al hijo
-d) Ignora los errores
+b) Ignora los errores
+c) Hace que la llamada no bloquee si no hay hijos terminados
+d) Mata al hijo
 
 **Pregunta 18.** ¿Cuál es la ventaja de los procesos que **no** desaparece con el free-threading?
 
-a) Que son más rápidos de crear
+a) Que no necesitan sockets
 b) El aislamiento: si un cliente provoca un crash, no se lleva puesto al servidor
 c) Que usan menos memoria
-d) Que no necesitan sockets
+d) Que son más rápidos de crear
 
 ---
 
@@ -147,31 +147,31 @@ d) Que no necesitan sockets
 
 **Pregunta 19.** Un pool con 5 workers recibe 20 clientes que tardan 1 segundo cada uno. ¿Cuánto tarda el total?
 
-a) 1 segundo
-b) 4 segundos
-c) 20 segundos
-d) 5 segundos
+a) 5 segundos
+b) 1 segundo
+c) 4 segundos
+d) 20 segundos
 
 **Pregunta 20.** En ese escenario, los clientes 6 a 20:
 
-a) Son rechazados con un error
-b) Esperan en la cola del pool hasta que se libere un worker
-c) Se atienden en paralelo igual
+a) Se atienden en paralelo igual
+b) Son rechazados con un error
+c) Esperan en la cola del pool hasta que se libere un worker
 d) Provocan un crash
 
 **Pregunta 21.** ¿Cuál es el problema del pool con conexiones persistentes?
 
 a) No soporta TCP
-b) Cada cliente ocupa un worker durante toda su sesión, no solo mientras trabaja
-c) Consume más memoria que un thread por cliente
-d) No se puede acotar
+b) No se puede acotar
+c) Cada cliente ocupa un worker durante toda su sesión, no solo mientras trabaja
+d) Consume más memoria que un thread por cliente
 
 **Pregunta 22.** ¿Para qué tipo de carga es el pool la herramienta correcta?
 
-a) Conexiones de larga duración, tipo WebSocket
-b) Tareas cortas y acotadas: una petición, una respuesta, se libera el worker
-c) Cualquier carga
-d) Solo para trabajo CPU-bound
+a) Tareas cortas y acotadas: una petición, una respuesta, se libera el worker
+b) Solo para trabajo CPU-bound
+c) Conexiones de larga duración, tipo WebSocket
+d) Cualquier carga
 
 **Pregunta 22b.** ¿Qué devuelve `pool.submit(funcion, arg)`?
 
@@ -183,9 +183,9 @@ d) El thread que va a ejecutar la tarea
 **Pregunta 23.** ¿Qué pasa si `atender()` lanza una excepción dentro de `pool.submit()`?
 
 a) El pool se detiene
-b) La excepción queda silenciada dentro del `Future` y no te enterás
+b) Se reintenta automáticamente
 c) Se propaga al bucle principal
-d) Se reintenta automáticamente
+d) La excepción queda silenciada dentro del `Future` y no te enterás
 
 ---
 
@@ -193,38 +193,38 @@ d) Se reintenta automáticamente
 
 **Pregunta 24.** Medís un servidor secuencial con 20 clientes que tardan 1 segundo. Latencia mínima 1s, máxima 20s. ¿Qué significa?
 
-a) Que la red está congestionada
-b) Que los clientes fueron atendidos en serie: el primero esperó 1s y el último 20s
-c) Que hubo errores de conexión
-d) Que el servidor tiene un bug
+a) Que el servidor tiene un bug
+b) Que la red está congestionada
+c) Que los clientes fueron atendidos en serie: el primero esperó 1s y el último 20s
+d) Que hubo errores de conexión
 
 **Pregunta 25.** Corrés el benchmark **sin** simular trabajo (sin `--lento`) y las cuatro estrategias dan casi lo mismo. ¿Qué concluís?
 
 a) Que la arquitectura da igual
-b) Que sin trabajo por cliente casi cualquier arquitectura anda: el parámetro que discrimina es el tiempo de atención
-c) Que el benchmark está mal
-d) Que el servidor secuencial es concurrente
+b) Que el benchmark está mal
+c) Que el servidor secuencial es concurrente
+d) Que sin trabajo por cliente casi cualquier arquitectura anda: el parámetro que discrimina es el tiempo de atención
 
 **Pregunta 26.** ¿Qué límite del sistema operativo afecta a todas las estrategias?
 
-a) La cantidad de RAM
-b) La cantidad de descriptores de archivo por proceso (`ulimit -n`)
-c) La velocidad del disco
-d) La cantidad de puertos
+a) La cantidad de descriptores de archivo por proceso (`ulimit -n`)
+b) La cantidad de puertos
+c) La cantidad de RAM
+d) La velocidad del disco
 
 **Pregunta 27.** ¿Qué es el problema C10K?
 
-a) Un virus de los años 90
-b) Cómo atender diez mil conexiones simultáneas en una máquina
+a) Una vulnerabilidad de TCP
+b) Un virus de los años 90
 c) Un límite de tamaño de paquete
-d) Una vulnerabilidad de TCP
+d) Cómo atender diez mil conexiones simultáneas en una máquina
 
 **Pregunta 28.** ¿Cómo se resolvió el C10K?
 
-a) Haciendo los threads más baratos
-b) Cambiando de modelo: un hilo que atiende muchas conexiones preguntándole al SO cuáles tienen datos listos
-c) Comprando más servidores
-d) No se resolvió
+a) Cambiando de modelo: un hilo que atiende muchas conexiones preguntándole al SO cuáles tienen datos listos
+b) No se resolvió
+c) Haciendo los threads más baratos
+d) Comprando más servidores
 
 **Pregunta 29.** `socketserver.ThreadingTCPServer` resuelve en diez líneas lo que la clase construyó a mano. ¿Por qué escribirlo igual?
 
@@ -235,10 +235,10 @@ d) Porque es más rápido a mano
 
 **Pregunta 30.** ¿Qué estrategia elegirías para un servidor que hace trabajo CPU-bound pesado por cliente, en un Python con GIL?
 
-a) Threads
+a) Pool de threads
 b) Procesos
-c) Pool de threads
-d) Servidor secuencial
+c) Servidor secuencial
+d) Threads
 
 ---
 
@@ -249,35 +249,35 @@ d) Servidor secuencial
 
 | # | Respuesta | Comentario |
 |---|-----------|------------|
-| 1 | b | El GIL se libera esperando I/O |
-| 2 | b | Pasa la mayor parte del tiempo esperando |
-| 3 | c | Python 3.14, vía PEP 779 |
-| 4 | b | Fase II: soportado pero opcional |
-| 5 | b | Los threads ya funcionaban para I/O |
+| 1 | a | El GIL se libera esperando I/O |
+| 2 | c | Pasa la mayor parte del tiempo esperando |
+| 3 | d | Python 3.14, vía PEP 779 |
+| 4 | a | Fase II: soportado pero opcional |
+| 5 | d | Los threads ya funcionaban para I/O |
 | 6 | b | Delegar y volver a `accept()` |
-| 7 | b | No impide que el programa termine |
-| 8 | b | Read-modify-write no es atómico |
-| 9 | a | Stack y presión sobre el planificador |
-| 10 | c | En los dos: el fd se hereda |
-| 11 | a | Padre cierra `conn`, hijo cierra `servidor` |
-| 12 | b | El refcount de CPython cierra el fd |
-| 13 | b | C, referencias retenidas, y PyPy |
+| 7 | a | No impide que el programa termine |
+| 8 | d | Read-modify-write no es atómico |
+| 9 | b | Stack y presión sobre el planificador |
+| 10 | b | En los dos: el fd se hereda |
+| 11 | d | Padre cierra `conn`, hijo cierra `servidor` |
+| 12 | a | El refcount de CPython cierra el fd |
+| 13 | c | C, referencias retenidas, y PyPy |
 | 14 | b | Terminado sin que el padre lo recoja |
-| 15 | b | Los 40 (medido) |
+| 15 | d | Los 40 (medido) |
 | 16 | b | Las señales no se encolan |
-| 17 | b | No bloquea si no hay hijos listos |
+| 17 | c | No bloquea si no hay hijos listos |
 | 18 | b | El aislamiento ante crashes |
-| 19 | b | 4 segundos: 20/5 = 4 tandas |
-| 20 | b | Esperan, no son rechazados |
-| 21 | b | Ocupan el worker toda la sesión |
-| 22 | b | Tareas cortas y acotadas |
+| 19 | c | 4 segundos: 20/5 = 4 tandas |
+| 20 | c | Esperan, no son rechazados |
+| 21 | c | Ocupan el worker toda la sesión |
+| 22 | a | Tareas cortas y acotadas |
 | 22b | b | Un `Future`; `submit()` no bloquea |
-| 23 | b | Silenciada en el `Future` |
-| 24 | b | La escalera del servidor secuencial |
-| 25 | b | El tiempo de atención es lo que discrimina |
-| 26 | b | `ulimit -n` |
-| 27 | b | Diez mil conexiones simultáneas |
-| 28 | b | I/O multiplexing (clase 17) |
+| 23 | d | Silenciada en el `Future` |
+| 24 | c | La escalera del servidor secuencial |
+| 25 | d | El tiempo de atención es lo que discrimina |
+| 26 | a | `ulimit -n` |
+| 27 | d | Diez mil conexiones simultáneas |
+| 28 | a | I/O multiplexing (clase 17) |
 | 29 | b | Diagnosticar requiere saber qué hay abajo |
 | 30 | b | Procesos: esquivan el GIL |
 

@@ -9,24 +9,24 @@
 
 **Pregunta 1.** ¿Qué comparten los threads de un mismo proceso?
 
-a) Solo el código
-b) Memoria, file descriptors, espacio de direcciones
-c) Nada, están completamente aislados
+a) Nada, están completamente aislados
+b) Solo el código
+c) Memoria, file descriptors, espacio de direcciones
 d) Solo las variables globales
 
 **Pregunta 2.** ¿Qué tiene cada thread de forma independiente?
 
-a) Todo - no comparten nada
-b) Solo el PID
-c) Stack, program counter, registros
-d) Solo variables locales
+a) Solo variables locales
+b) Stack, program counter, registros
+c) Todo - no comparten nada
+d) Solo el PID
 
 **Pregunta 3.** ¿Qué módulo de Python se usa para crear threads?
 
 a) `multiprocessing`
-b) `thread`
+b) `concurrent`
 c) `threading`
-d) `concurrent`
+d) `thread`
 
 **Pregunta 4.** ¿Qué método inicia la ejecución de un thread?
 
@@ -37,17 +37,17 @@ d) `execute()`
 
 **Pregunta 5.** ¿Qué método espera a que un thread termine?
 
-a) `wait()`
-b) `join()`
-c) `finish()`
-d) `sync()`
+a) `sync()`
+b) `finish()`
+c) `wait()`
+d) `join()`
 
 **Pregunta 6.** ¿Qué es un daemon thread?
 
-a) Un thread que corre con privilegios elevados
-b) Un thread que se termina automáticamente cuando el programa principal termina
-c) Un thread que no puede ser detenido
-d) Un thread que corre en segundo plano en otra máquina
+a) Un thread que no puede ser detenido
+b) Un thread que corre en segundo plano en otra máquina
+c) Un thread que corre con privilegios elevados
+d) Un thread que se termina automáticamente cuando el programa principal termina
 
 ---
 
@@ -55,52 +55,52 @@ d) Un thread que corre en segundo plano en otra máquina
 
 **Pregunta 7.** ¿Qué es el GIL en Python?
 
-a) Un tipo especial de lock
-b) Un mutex que impide que múltiples threads ejecuten bytecode Python simultáneamente
-c) Una biblioteca de gráficos
-d) Un garbage collector
+a) Un mutex que impide que múltiples threads ejecuten bytecode Python simultáneamente
+b) Un garbage collector
+c) Un tipo especial de lock
+d) Una biblioteca de gráficos
 
 **Pregunta 8.** ¿Para qué tipo de tareas los threads sí mejoran el rendimiento en Python (con GIL)?
 
 a) Tareas CPU-bound (cálculos intensivos)
 b) Tareas I/O-bound (red, disco)
-c) Todas las tareas
-d) Ninguna tarea
+c) Ninguna tarea
+d) Todas las tareas
 
 **Pregunta 9.** ¿Cuándo se libera el GIL?
 
-a) Nunca
-b) Durante operaciones de I/O
+a) Cada segundo
+b) Nunca
 c) Solo manualmente
-d) Cada segundo
+d) Durante operaciones de I/O
 
 **Pregunta 10.** ¿Qué alternativa usarías para tareas CPU-bound en Python con GIL?
 
-a) Más threads
-b) `multiprocessing`
-c) No hay alternativa
-d) `async/await`
+a) No hay alternativa
+b) Más threads
+c) `async/await`
+d) `multiprocessing`
 
 **Pregunta 11.** ¿Por qué existe el GIL?
 
-a) Para hacer Python más lento
-b) Para proteger el reference counting del garbage collector
-c) Por compatibilidad con Windows
+a) Por compatibilidad con Windows
+b) Para hacer Python más lento
+c) Para proteger el reference counting del garbage collector
 d) No hay razón, es un bug
 
 **Pregunta 12.** ¿Qué cambia con el "free-threaded Python" (PEP 703)?
 
-a) Python es más rápido en todo
+a) Solo funciona en Linux
 b) El GIL se puede deshabilitar al compilar, permitiendo verdadero paralelismo con threads (con un costo en single-threaded)
-c) Se elimina el módulo threading
-d) Solo funciona en Linux
+c) Python es más rápido en todo
+d) Se elimina el módulo threading
 
 **Pregunta 13.** A partir de qué versión el free-threaded Python dejó de ser experimental:
 
-a) Python 3.12
-b) Python 3.13
+a) Python 4.0
+b) Python 3.12
 c) Python 3.14
-d) Python 4.0
+d) Python 3.13
 
 ---
 
@@ -108,31 +108,31 @@ d) Python 4.0
 
 **Pregunta 14.** ¿Qué es una race condition?
 
-a) Un tipo de competencia entre programas
-b) Cuando múltiples threads acceden a datos compartidos sin sincronización
-c) Cuando un thread es más rápido que otro
-d) Un error de sintaxis
+a) Un error de sintaxis
+b) Cuando un thread es más rápido que otro
+c) Un tipo de competencia entre programas
+d) Cuando múltiples threads acceden a datos compartidos sin sincronización
 
 **Pregunta 15.** ¿Qué primitivo básico protege una sección crítica?
 
-a) Queue
-b) Event
+a) Semaphore
+b) Queue
 c) Lock
-d) Semaphore
+d) Event
 
 **Pregunta 16.** ¿Cuál es la forma recomendada de usar un Lock en Python?
 
 a) `lock.acquire()` y `lock.release()`
-b) `with lock:`
-c) `lock.enter()` y `lock.exit()`
-d) `lock.lock()` y `lock.unlock()`
+b) `lock.lock()` y `lock.unlock()`
+c) `with lock:`
+d) `lock.enter()` y `lock.exit()`
 
 **Pregunta 17.** Si `contador += 1` no es atómico, ¿cuántas operaciones lo componen internamente?
 
 a) 1 (es atómico)
-b) 2 (sumar y escribir)
-c) 3 (leer, sumar, escribir)
-d) Depende del CPU
+b) Depende del CPU
+c) 2 (sumar y escribir)
+d) 3 (leer, sumar, escribir)
 
 ---
 
@@ -140,24 +140,24 @@ d) Depende del CPU
 
 **Pregunta 18.** ¿Qué ventaja tiene `queue.Queue` para comunicación entre threads?
 
-a) Es más rápida
-b) Es thread-safe por defecto
+a) Es thread-safe por defecto
+b) No tiene ventajas especiales
 c) Usa menos memoria
-d) No tiene ventajas especiales
+d) Es más rápida
 
 **Pregunta 19.** ¿En qué situación usarías `threading.local()`?
 
-a) Para variables que todos los threads comparten
+a) Para variables locales a una función
 b) Para que cada thread tenga su propia copia independiente de una variable
-c) Para variables locales a una función
+c) Para variables que todos los threads comparten
 d) Para constantes
 
 **Pregunta 20.** ¿Qué tipo de queue saca primero el ítem con menor valor numérico?
 
 a) `Queue` (FIFO)
-b) `LifoQueue`
-c) `PriorityQueue`
-d) `OrderedQueue`
+b) `OrderedQueue`
+c) `LifoQueue`
+d) `PriorityQueue`
 
 ---
 
@@ -257,26 +257,26 @@ La solución es proteger la operación con un `Lock`.
 
 | # | Resp | Explicación |
 |---|------|-------------|
-| 1 | b | Memoria, file descriptors, espacio de direcciones |
-| 2 | c | Stack, program counter, registros |
+| 1 | c | Memoria, file descriptors, espacio de direcciones |
+| 2 | b | Stack, program counter, registros |
 | 3 | c | `threading` |
 | 4 | b | `start()` (run lo invoca start internamente) |
-| 5 | b | `join()` |
-| 6 | b | Thread que muere automáticamente con el programa principal |
-| 7 | b | Mutex que impide ejecución paralela de bytecode Python |
+| 5 | d | `join()` |
+| 6 | d | Thread que muere automáticamente con el programa principal |
+| 7 | a | Mutex que impide ejecución paralela de bytecode Python |
 | 8 | b | I/O-bound (red, disco) |
-| 9 | b | Durante operaciones de I/O |
-| 10 | b | `multiprocessing` |
-| 11 | b | Para proteger el reference counting del GC |
+| 9 | d | Durante operaciones de I/O |
+| 10 | d | `multiprocessing` |
+| 11 | c | Para proteger el reference counting del GC |
 | 12 | b | Free-threaded build: GIL opcional al compilar |
 | 13 | c | Python 3.14 (PEP 779) |
-| 14 | b | Acceso concurrente sin sincronización |
+| 14 | d | Acceso concurrente sin sincronización |
 | 15 | c | Lock |
-| 16 | b | `with lock:` |
-| 17 | c | Leer, sumar, escribir |
-| 18 | b | Thread-safe por diseño |
+| 16 | c | `with lock:` |
+| 17 | d | Leer, sumar, escribir |
+| 18 | a | Thread-safe por diseño |
 | 19 | b | Variable privada por hilo |
-| 20 | c | `PriorityQueue` (menor valor primero) |
+| 20 | d | `PriorityQueue` (menor valor primero) |
 
 </details>
 

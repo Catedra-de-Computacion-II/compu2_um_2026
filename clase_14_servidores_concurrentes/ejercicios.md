@@ -294,7 +294,7 @@ Extendé el servidor de threads para que responda a un comando `STATS` con: clie
 
 ### Comparar contra nginx
 
-Instalá nginx, servile un archivo estático y medilo con `ab` o `wrk`. Compará el throughput con tu mejor servidor Python. La diferencia es la clase 17 en números.
+Instalá nginx, servile un archivo estático y medilo con `ab` o `wrk`. Compará el throughput con tu mejor servidor Python. La diferencia es la clase 16 en números.
 
 ### Cierre ordenado
 

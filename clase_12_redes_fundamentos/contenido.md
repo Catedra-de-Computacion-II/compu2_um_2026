@@ -68,7 +68,7 @@ Vas a encontrar dos modelos de capas y conviene saber cuál es cuál.
 
 En la práctica se usan mezclados: la gente dice "un problema de capa 3" (vocabulario OSI) hablando de una red TCP/IP. La numeración OSI sobrevivió como jerga aunque el modelo no se implemente.
 
-Un detalle que confunde: OSI separa presentación y sesión, pero en TCP/IP eso es responsabilidad de la aplicación. Cuando en la clase 18 veamos HTTP, vamos a estar programando algo que en OSI abarcaría tres capas.
+Un detalle que confunde: OSI separa presentación y sesión, pero en TCP/IP eso es responsabilidad de la aplicación. Cuando en la clase 17 veamos HTTP, vamos a estar programando algo que en OSI abarcaría tres capas.
 
 ---
 
@@ -88,7 +88,7 @@ IPv6 usa 128 bits en hexadecimal, porque las IPv4 se agotaron:
 2001:0db8:85a3::8a2e:0370:7334
 ```
 
-Lo vemos en detalle en la clase 16. Por ahora alcanza con saber que conviven.
+Lo vemos en detalle en el material autónomo de IPv6 (`bloque_0_autonomo/ipv6/`). Por ahora alcanza con saber que conviven.
 
 Algunas direcciones tienen significado especial:
 

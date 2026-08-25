@@ -52,7 +52,7 @@ La razón es que no hay nada que aceptar. En TCP, `accept()` devolvía un socket
 
 Por eso `recvfrom()` devuelve **dos** cosas: los datos y el origen. Sin ese origen no sabrías a quién responderle.
 
-### El cliente: ni siquiera hace falta bind
+### El cliente: ni bind ni connect
 
 ```python
 #!/usr/bin/env python3
@@ -85,31 +85,72 @@ Por eso todo cliente UDP necesita timeout. Es la diferencia entre un programa qu
 
 ---
 
-## connect() en UDP: existe y no hace lo que parece
+## bind() y connect(): quién fija qué extremo
 
-Hay una función que confunde a todo el mundo:
+Las dos funciones fijan una dirección, pero **extremos opuestos**. Entenderlo aclara de una vez cuándo hace falta cada una:
+
+| | Fija el extremo | Responde a la pregunta |
+|---|---|---|
+| `bind()` | **local** | ¿en qué puerto escucho / desde cuál salgo? |
+| `connect()` | **remoto** | ¿a quién le hablo? |
+
+Son **ortogonales**: podés usar una, la otra, las dos, o ninguna. No son alternativas entre sí, y ninguna es obligatoria por la API.
+
+### bind(): obligatorio en el servidor, casi nunca en el cliente
+
+**Del lado del servidor** hace falta siempre, y no por formalidad: sin `bind()` el socket queda en el puerto 0, y **nadie puede mandarle un datagrama a un puerto que no existe**.
 
 ```python
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+print(s.getsockname())      # ('0.0.0.0', 0)  <- nadie puede escribirte acá
+s.recvfrom(4096)            # espera para siempre: no hay dirección publicada
+```
+
+El `bind()` del servidor es *publicar la dirección* donde te van a encontrar. Igual que en TCP.
+
+**Del lado del cliente no hace falta.** El kernel asigna un puerto efímero solo, en el primer `sendto()`:
+
+```python
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+print(s.getsockname())                      # ('0.0.0.0', 0)
+s.sendto(b'x', ('localhost', 8080))
+print(s.getsockname())                      # ('0.0.0.0', 35748)  <- apareció solo
+```
+
+Un cliente hace `bind()` solo si necesita un **puerto de origen específico**: porque un firewall filtra por puerto, porque el protocolo lo exige (DHCP usa el 68 fijo), o para recibir respuestas en un puerto conocido de antemano.
+
+### connect() en UDP: existe, es cosa del cliente, y no conecta nada
+
+Acá está la función que confunde a todo el mundo. **Es una herramienta del lado del cliente**: la usa quien habla siempre con el mismo servidor.
+
+```python
+# CLIENTE que va a hablar con un único servidor
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.connect(('localhost', 8080))     # ¿pero no era sin conexión?
 s.send(b'hola')                    # y ahora send(), no sendto()
 datos = s.recv(4096)               # y recv(), no recvfrom()
 ```
 
-Esto funciona, pero **no establece ninguna conexión**: no se manda un solo paquete, no hay handshake, el otro lado ni se entera.
+**No establece ninguna conexión**: no se manda un solo paquete, no hay handshake, el servidor ni se entera. Es una anotación puramente local, en tu propio socket.
 
-Lo que hace es fijar una dirección por defecto en el socket local. A partir de ahí:
+Lo que sí hace, y son tres cosas:
 
-- Podés usar `send()`/`recv()` sin repetir la dirección
-- El kernel **descarta** los datagramas que vengan de cualquier otra dirección
-- Empezás a recibir errores ICMP, como *port unreachable*
+**1. Sintaxis más corta.** `send()`/`recv()` en vez de repetir la dirección en cada llamada.
 
-Ese último punto es el más útil y el menos conocido:
+**2. Filtra remitentes.** El kernel descarta los datagramas que vengan de cualquier otra dirección, en silencio:
 
 ```python
-import socket
+rx.connect(('127.0.0.1', 46002))       # solo escucho a este
+# El datagrama de un tercero llega a la placa de red y el kernel lo tira.
+# Tu recv() nunca lo ve.
+```
+
+**3. Te habilita los errores ICMP.** Este es el más útil y el menos conocido:
+
+```python
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(('localhost', 9999))     # puerto donde no hay nadie
+s.settimeout(2)
+s.connect(('localhost', 59999))    # puerto donde no hay nadie
 s.send(b'hola')
 try:
     s.recv(4096)
@@ -117,9 +158,38 @@ except ConnectionRefusedError:
     print('El destino avisó que no hay nadie en ese puerto')
 ```
 
-Con un socket UDP no conectado, ese mismo escenario te deja esperando indefinidamente. Con `connect()`, el ICMP llega hasta tu programa como excepción.
+Sin `connect()`, el mismo escenario te deja esperando el timeout completo:
 
-> **Cuidado**: esto funciona en localhost y en redes locales, pero muchos firewalls filtran ICMP en Internet. No construyas tu protocolo asumiendo que el error va a llegar.
+```
+CON connect:  ConnectionRefusedError   <- el ICMP llegó a tu programa
+SIN connect:  timeout                  <- el ICMP se descartó, esperaste al pedo
+```
+
+La razón es que el *port unreachable* vuelve como mensaje ICMP, y el kernel necesita saber a qué socket entregárselo. Sin destino fijado no puede decidirlo, así que lo tira.
+
+> **Cuidado**: funciona en localhost y en redes locales, pero muchos firewalls filtran ICMP en Internet. No construyas tu protocolo asumiendo que el error va a llegar: el timeout sigue siendo tu red de seguridad.
+
+### Combinarlas
+
+Como tocan extremos distintos, se pueden usar juntas:
+
+```python
+s.bind(('0.0.0.0', 46021))         # mi puerto de origen
+s.connect(('10.0.0.5', 46022))     # el destino permitido
+```
+
+Es lo que haría un servidor que dialoga con un único peer conocido: `bind()` para ser encontrable, `connect()` para filtrar a los demás y enterarse de los ICMP.
+
+### Resumen
+
+| Situación | `bind()` | `connect()` |
+|-----------|----------|-------------|
+| Servidor que atiende a cualquiera | **sí** | no |
+| Servidor con un único peer fijo | **sí** | conviene |
+| Cliente de un solo servidor | no | conviene |
+| Cliente que habla con varios | no | no |
+
+Cuando no usás ninguna de las dos, te quedan `sendto()` y `recvfrom()` sueltos, que es el caso más general y el que usamos en el eco del principio.
 
 ---
 
@@ -362,18 +432,22 @@ El criterio de fondo: **si retransmitir un dato viejo no tiene sentido, TCP te e
 2. **Un solo socket atiende a todos**: no hay socket por cliente porque no hay conexión.
 3. **`recvfrom()` devuelve datos y origen**: sin el origen no sabés a quién responder.
 4. **Timeout obligatorio en el cliente**: sin cierre que detectar, un `recvfrom()` sin timeout espera para siempre.
-5. **`connect()` en UDP no conecta**: fija destino por defecto, filtra remitentes y habilita errores ICMP.
-6. **Un `sendto()` es un `recvfrom()`**: no hay framing que implementar.
-7. **Buffer chico trunca el datagrama**: lo que no entra se descarta, no queda para después.
-8. **Quedate por debajo del MTU**: fragmentar multiplica la probabilidad de perder el datagrama entero.
-9. **Confiabilidad se implementa, y cuesta**: timeout, retransmisión, números de secuencia, deduplicación.
-10. **Broadcast y multicast son exclusivos de UDP**: TCP es punto a punto por definición.
+5. **`bind()` y `connect()` fijan extremos opuestos**: son ortogonales, no alternativas.
+6. **`bind()` es del servidor**: sin él el socket queda en el puerto 0 y nadie puede mandarle nada. En el cliente el kernel asigna puerto solo.
+7. **`connect()` es del cliente y no conecta**: no manda un paquete. Fija destino, filtra remitentes y habilita los errores ICMP que de otro modo se descartan.
+8. **Un `sendto()` es un `recvfrom()`**: no hay framing que implementar.
+9. **Buffer chico trunca el datagrama**: lo que no entra se descarta, no queda para después.
+10. **Quedate por debajo del MTU**: fragmentar multiplica la probabilidad de perder el datagrama entero.
+11. **Confiabilidad se implementa, y cuesta**: timeout, retransmisión, números de secuencia, deduplicación.
+12. **Broadcast y multicast son exclusivos de UDP**: TCP es punto a punto por definición.
 
 ---
 
 ## Preparación para la próxima clase
 
-En la **clase 16 (IPv6)** volvemos sobre el direccionamiento que dejamos pendiente en la clase 12. Vale para TCP y para UDP: es la capa de abajo. Vamos a ver por qué se agotaron las IPv4, cómo se escribe una dirección IPv6, y cómo se escribe código que funcione con las dos familias sin duplicarlo.
+En la **clase 16 (I/O Multiplexing)** volvemos al problema que dejó abierto la clase 14: cómo atender muchos clientes sin dedicarle un thread ni un proceso a cada uno. La respuesta es `select()`, `poll()` y `epoll()`, que permiten esperar por muchos sockets a la vez en un solo hilo. Es la base sobre la que está construido asyncio.
+
+Aparte, queda **IPv6 como material de estudio autónomo** en `bloque_0_autonomo/ipv6/`: direccionamiento, `getaddrinfo()` y servidores dual-stack. Es corto y aplica tanto a TCP como a UDP; conviene leerlo antes del TP2.
 
 Para llegar preparado:
 

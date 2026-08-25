@@ -30,7 +30,7 @@
 ├── clase_01_docker_intro/      # Presentación + Docker básico
 ├── clase_02_docker_aplicado/   # Volúmenes, redes, compose
 ├── clase_03_procesos_fundamentos/  # Modelo de proceso
-├── ...                         # (29 clases en total)
+├── ...                         # (25 clases en total)
 │
 ├── trabajos_practicos/
 │   ├── TP1_monitoreo/         # Sistema de monitoreo concurrente
@@ -61,38 +61,43 @@ clase_XX_tema/
 
 ## Cronograma resumido
 
-### Primer Cuatrimestre
+**25 clases.** El 2º término lectivo finaliza el 13/11/2026; no se dicta clase en
+las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 
-**Bloque: concurrencia local**
+### Primer cuatrimestre
 
 | Clase | Tema |
 |-------|------|
-| 1-2 | Docker: intro y aplicado |
-| 3-4 | Procesos: fundamentos, fork/exec/wait |
-| 5-7 | Pipes, señales, mmap y memoria compartida |
+| 1-2 | Docker: introducción y aplicado |
+| 3-4 | Procesos: fundamentos / fork, exec, wait |
+| 5-6 | Pipes / Señales |
+| 7 | mmap y memoria compartida |
 | 8-9 | Multiprocessing: fundamentos y avanzado |
-| 10 | Threading |
-| 11 | Sincronización (primitivos y problemas clásicos) |
+| 10-11 | Threading / Sincronización |
+| 12-13 | Redes: fundamentos / Sockets TCP |
+| 14 | Servidores concurrentes |
+| 15 | UDP — **Entrega TP1** |
 
-**Bloque: redes** (arranca en el primer cuatrimestre y sigue en el segundo)
+### Segundo cuatrimestre
 
-| Clase | Tema |
-|-------|------|
-| 12 | Redes: fundamentos |
-| 13-14 | Sockets TCP, servidores concurrentes |
+| Clase | Fecha | Tema |
+|-------|-------|------|
+| 16 | 01/09 | I/O Multiplexing |
+| 17 | 08/09 | HTTP + FastAPI |
+| — | 15/09 | *(mesas de exámenes: sin clase)* |
+| 18 | 22/09 | Async: fundamentos |
+| 19 | 29/09 | Asyncio I |
+| 20 | 06/10 | Asyncio II |
+| 21 | 13/10 | Práctica asyncio |
+| 22 | 20/10 | concurrent.futures |
+| 23 | 27/10 | Celery I |
+| 24 | 03/11 | Celery II |
+| 25 | 10/11 | Compose avanzado — **Entrega TP2** |
+| — | 09-13/11 | *(recuperaciones y firma de regularidades)* |
 
-### Segundo Cuatrimestre
-
-| Clase | Tema |
-|-------|------|
-| 15-17 | UDP, IPv6, I/O multiplexing |
-| 18 | HTTP + FastAPI |
-| 19-22 | Async: fundamentos, asyncio, práctica |
-| 23-25 | concurrent.futures, Celery |
-| 26-28 | Compose avanzado, integración |
-| 29 | Cierre |
-
-> Las fechas se fijan al inicio del ciclo. La numeración corresponde a las carpetas del repositorio.
+> El cronograma del segundo cuatrimestre está ajustado al calendario académico de
+> la Facultad de Ingeniería. IPv6 pasó a material de estudio autónomo
+> (`bloque_0_autonomo/ipv6/`).
 
 ---
 

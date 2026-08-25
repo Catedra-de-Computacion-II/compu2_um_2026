@@ -544,8 +544,8 @@ La solución vuelve a todo el bloque de concurrencia:
 - Un **thread** por cliente (clase 10)
 - Un **proceso** por cliente, con `fork()` (clase 4)
 - Un **pool** de workers (clase 9)
-- **Multiplexar** con `select()` y atender muchos en un solo hilo (clase 17)
-- **Asyncio** (clase 19 en adelante)
+- **Multiplexar** con `select()` y atender muchos en un solo hilo (clase 16)
+- **Asyncio** (clase 18 en adelante)
 
 Todo el bloque de concurrencia local existía, en parte, para poder resolver esto. La clase 14 lo retoma.
 

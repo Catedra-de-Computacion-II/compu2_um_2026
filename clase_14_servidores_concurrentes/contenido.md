@@ -234,7 +234,7 @@ Un pool fija la cantidad de workers de antemano.
 
 En el ejercicio obligatorio de la clase 10 construyeron un pool de threads a mano: unos cuantos `threading.Thread` consumiendo URLs de una `queue.Queue`, con su lógica de arranque, de parada y de recolección de resultados. Funcionaba, y valía la pena escribirlo para entender qué hay adentro.
 
-La biblioteca estándar ya trae eso resuelto en `concurrent.futures`, y acá lo necesitamos. La clase 23 lo retoma en profundidad —`ProcessPoolExecutor`, `map`, `as_completed`, manejo de excepciones—; por ahora alcanza con tres ideas.
+La biblioteca estándar ya trae eso resuelto en `concurrent.futures`, y acá lo necesitamos. La clase 22 lo retoma en profundidad —`ProcessPoolExecutor`, `map`, `as_completed`, manejo de excepciones—; por ahora alcanza con tres ideas.
 
 **Un `Executor` es un pool de workers con una cola adentro.** Se crea diciendo cuántos workers querés:
 
@@ -388,7 +388,7 @@ Y el pool saturado, con `--workers 5` contra 20 clientes:
 
 Cuatro tandas de cinco. Nadie fue rechazado; los últimos quince simplemente esperaron su turno.
 
-Vale la pena que corras el benchmark subiendo la cantidad de clientes hasta que algo se rompa. En la máquina donde se probó esto, 200 clientes concurrentes contra el servidor de threads completaron en 1,13 s sin un solo fallo — el techo está bastante más arriba de lo que uno esperaría, y encontrarlo es el argumento para la clase 17.
+Vale la pena que corras el benchmark subiendo la cantidad de clientes hasta que algo se rompa. En la máquina donde se probó esto, 200 clientes concurrentes contra el servidor de threads completaron en 1,13 s sin un solo fallo — el techo está bastante más arriba de lo que uno esperaría, y encontrarlo es el argumento para la clase 16.
 
 ---
 
@@ -418,7 +418,7 @@ En 1999, Dan Kegel escribió un texto famoso preguntando cómo hacer para atende
 
 La solución no fue hacer los threads más baratos, sino cambiar el modelo: **un solo hilo que atiende muchas conexiones**, preguntándole al sistema operativo cuáles tienen datos listos en vez de bloquearse en cada una.
 
-Eso es I/O multiplexing, y es la clase 17. Es también la idea sobre la que está construido asyncio, y la razón por la que nginx maneja con un puñado de procesos lo que Apache necesitaba miles de threads para hacer.
+Eso es I/O multiplexing, y es la clase 16. Es también la idea sobre la que está construido asyncio, y la razón por la que nginx maneja con un puñado de procesos lo que Apache necesitaba miles de threads para hacer.
 
 ---
 

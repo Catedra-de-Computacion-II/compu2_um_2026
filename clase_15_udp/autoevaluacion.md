@@ -281,7 +281,7 @@ d) Que TCP frena todo lo que viene atrás mientras retransmite un dato viejo, lo
 
 | Puntaje | Diagnóstico |
 |---------|-------------|
-| 27-30 correctas | Excelente. Avanzá a la clase 16 (IPv6) |
+| 27-30 correctas | Excelente. Avanzá a la clase 16 (I/O Multiplexing) |
 | 21-26 | Buen nivel. Repasá los temas donde fallaste |
 | 14-20 | Nivel intermedio. Rehacé el ejercicio 3 (protocolo confiable) |
 | < 14 | Repasá el contenido completo. Consultá con el docente antes de la próxima clase |

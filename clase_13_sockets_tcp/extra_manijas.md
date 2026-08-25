@@ -50,7 +50,7 @@ La secuencia:
 3. Ninguno llega nunca a su `recv()`, así que los buffers no se vacían.
 4. Deadlock permanente.
 
-Es el mismo problema de dependencia circular que vimos con locks en la clase 11, con buffers en lugar de mutexes. Las soluciones también se parecen: imponer un orden estricto (protocolo de petición/respuesta donde uno habla y el otro escucha), usar threads separados para lectura y escritura, o multiplexar con `select()` (clase 17).
+Es el mismo problema de dependencia circular que vimos con locks en la clase 11, con buffers en lugar de mutexes. Las soluciones también se parecen: imponer un orden estricto (protocolo de petición/respuesta donde uno habla y el otro escucha), usar threads separados para lectura y escritura, o multiplexar con `select()` (clase 16).
 
 Es una de las razones por las que los protocolos reales tienen turnos definidos y no dejan que ambos lados hablen a la vez sin control.
 
@@ -70,7 +70,7 @@ except BlockingIOError:
 
 En vez de esperar, la llamada falla inmediatamente con `BlockingIOError` (`EAGAIN`/`EWOULDBLOCK` en C) si no hay datos.
 
-Por sí solo esto es poco útil: preguntar en un bucle cerrado "¿hay algo?" quema CPU. Se vuelve potente combinado con `select()`, `poll()` o `epoll()`, que permiten preguntar por muchos sockets a la vez y dormir hasta que alguno esté listo. Eso es la clase 17, y es la base sobre la que está construido asyncio.
+Por sí solo esto es poco útil: preguntar en un bucle cerrado "¿hay algo?" quema CPU. Se vuelve potente combinado con `select()`, `poll()` o `epoll()`, que permiten preguntar por muchos sockets a la vez y dormir hasta que alguno esté listo. Eso es la clase 16, y es la base sobre la que está construido asyncio.
 
 `settimeout()` es en realidad un modo intermedio: bloquea, pero con límite.
 
@@ -233,7 +233,7 @@ Ese ejemplo resuelve en diez líneas lo que la clase entera construyó a mano, i
 
 ¿Por qué entonces hacerlo a mano? Porque cuando `socketserver` (o Flask, o gRPC) se comporta raro, la única forma de entender qué pasa es saber qué hay abajo. Los bugs de red se diagnostican en la capa cruda aunque el código de producción viva varias capas más arriba.
 
-En orden de abstracción creciente: `socket` → `socketserver` → `asyncio` (clase 19+) → frameworks como FastAPI (clase 18).
+En orden de abstracción creciente: `socket` → `socketserver` → `asyncio` (clase 18+) → frameworks como FastAPI (clase 17).
 
 ---
 

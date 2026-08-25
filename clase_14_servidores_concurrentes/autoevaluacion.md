@@ -277,7 +277,7 @@ d) Threads
 | 25 | d | El tiempo de atención es lo que discrimina |
 | 26 | a | `ulimit -n` |
 | 27 | d | Diez mil conexiones simultáneas |
-| 28 | a | I/O multiplexing (clase 17) |
+| 28 | a | I/O multiplexing (clase 16) |
 | 29 | b | Diagnosticar requiere saber qué hay abajo |
 | 30 | b | Procesos: esquivan el GIL |
 

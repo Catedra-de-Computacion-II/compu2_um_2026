@@ -20,14 +20,13 @@
 #clase_15_udp/
 clase_16_io_multiplexing/
 clase_17_http_fastapi/
-clase_18_async_fundamentos/
-clase_19_asyncio_1/
-clase_20_asyncio_2/
-clase_21_practica_asyncio/
-clase_22_concurrent_futures/
-clase_23_celery_1/
-clase_24_celery_2/
-clase_25_compose_avanzado/
+clase_18_yield_a_asyncio/
+clase_19_asyncio_red/
+clase_20_asyncio_avanzado/
+clase_21_concurrent_futures/
+clase_22_celery_1/
+clase_23_celery_2/
+clase_24_compose_avanzado/
 
 # === Trabajos prácticos (liberar cuando corresponda) ===
 trabajos_practicos/

@@ -30,7 +30,7 @@
 ├── clase_01_docker_intro/      # Presentación + Docker básico
 ├── clase_02_docker_aplicado/   # Volúmenes, redes, compose
 ├── clase_03_procesos_fundamentos/  # Modelo de proceso
-├── ...                         # (25 clases en total)
+├── ...                         # (24 clases en total)
 │
 ├── trabajos_practicos/
 │   ├── TP1_monitoreo/         # Sistema de monitoreo concurrente
@@ -61,7 +61,7 @@ clase_XX_tema/
 
 ## Cronograma resumido
 
-**25 clases.** El 2º término lectivo finaliza el 13/11/2026; no se dicta clase en
+**24 clases.** El 2º término lectivo finaliza el 13/11/2026; no se dicta clase en
 las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 
 ### Primer cuatrimestre
@@ -83,16 +83,15 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 | Clase | Fecha | Tema |
 |-------|-------|------|
 | 16 | 01/09 | I/O Multiplexing |
-| 17 | 08/09 | HTTP + FastAPI |
+| 17 | 08/09 | HTTP + FastAPI — **Enunciado TP2** |
 | — | 15/09 | *(mesas de exámenes: sin clase)* |
-| 18 | 22/09 | Async: fundamentos |
-| 19 | 29/09 | Asyncio I |
-| 20 | 06/10 | Asyncio II |
-| 21 | 13/10 | Práctica asyncio |
-| 22 | 20/10 | concurrent.futures |
-| 23 | 27/10 | Celery I |
-| 24 | 03/11 | Celery II |
-| 25 | 10/11 | Compose avanzado — **Entrega TP2** |
+| 18 | 22/09 | De yield a asyncio |
+| 19 | 29/09 | Asyncio en red |
+| 20 | 06/10 | Asyncio avanzado |
+| 21 | 13/10 | concurrent.futures |
+| 22 | 20/10 | Celery I |
+| 23 | 27/10 | Celery II |
+| 24 | 03/11 | Compose avanzado — **Entrega TP2** |
 | — | 09-13/11 | *(recuperaciones y firma de regularidades)* |
 
 > El cronograma del segundo cuatrimestre está ajustado al calendario académico de

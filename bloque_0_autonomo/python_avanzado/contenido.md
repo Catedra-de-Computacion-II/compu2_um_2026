@@ -465,6 +465,42 @@ def leer_multiples_archivos(archivos):
 
 `yield from` es más que azúcar sintáctica: también propaga excepciones y valores de retorno correctamente.
 
+### send(): generadores que reciben, no solo producen
+
+Hasta acá `yield` fue una salida: el generador produce y vos consumís. Pero `yield`
+también es una **entrada**. Con `.send(valor)`, ese valor pasa a ser el resultado
+de la expresión `yield` dentro del generador:
+
+```python
+def acumulador():
+    """Suma lo que le vayan mandando."""
+    total = 0
+    while True:
+        n = yield total          # produce el total, y RECIBE el próximo n
+        total += n
+
+a = acumulador()
+next(a)              # arranca el generador; se detiene en el primer yield
+print(a.send(10))    # 10
+print(a.send(5))     # 15
+print(a.send(3))     # 18
+```
+
+Fijate el detalle del `next(a)` inicial: un generador recién creado no ejecutó
+nada todavía, así que hay que llevarlo hasta el primer `yield` antes de poder
+mandarle algo. Si intentás `send()` de entrada, Python lanza `TypeError`.
+
+Esto convierte al generador en algo distinto de un iterador: es una **función que
+se suspende, recibe un dato del exterior y continúa donde estaba**. Es decir, una
+tarea que se puede pausar y reanudar.
+
+Y esa es exactamente la idea sobre la que está construido asyncio: cuando escribís
+`resultado = await algo()`, la corrutina se suspende, alguien más la reanuda
+pasándole el resultado, y sigue. `async`/`await` es azúcar sobre este mecanismo.
+
+En la clase de asyncio vamos a construir un scheduler cooperativo usando solo
+generadores y `send()`, para que quede claro que el event loop no es magia.
+
 ---
 
 ## Closures y funciones de orden superior

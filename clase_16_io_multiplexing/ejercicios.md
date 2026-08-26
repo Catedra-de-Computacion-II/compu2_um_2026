@@ -1,8 +1,60 @@
-# Clase 16: I/O Multiplexing - Ejercicios Prácticos
+# Clase 16: Direccionamiento IPv4 e I/O Multiplexing - Ejercicios Prácticos
 
 Los archivos `servidor_select.py`, `servidor_selectors.py`, `chat.py` y `comparar.py` acompañan la clase. Empezá corriéndolos para ver el comportamiento esperado.
 
 Casi todos los ejercicios necesitan **dos o tres terminales**.
+
+---
+
+## Ejercicio 0: Direccionamiento IPv4
+
+Repaso previo. Usá `ipaddress` en vez de calcular máscaras a mano.
+
+### 0.1 Leer un prefijo
+
+```python
+import ipaddress
+red = ipaddress.ip_network('192.168.1.0/24')
+```
+
+1. ¿Cuántas direcciones tiene? ¿Cuántos hosts usables? ¿Por qué la diferencia es 2?
+2. ¿Cuál es la máscara en notación decimal? ¿Y la dirección de broadcast?
+3. Repetí con `/16`, `/26` y `/30`. Completá una tabla de prefijo, direcciones y hosts.
+4. ¿Cuál es más grande, un `/24` o un `/30`? Explicá por qué la intuición engaña.
+
+### 0.2 Misma red o no
+
+```python
+red = ipaddress.ip_network('192.168.1.0/24')
+print(ipaddress.ip_address('192.168.1.37') in red)
+print(ipaddress.ip_address('192.168.2.10') in red)
+```
+
+5. ¿Qué hace tu sistema distinto en cada caso al mandar un paquete?
+6. Dos máquinas, `10.0.0.5/24` y `10.0.1.7/24`, conectadas al mismo switch. ¿Se ven? ¿Por qué?
+7. ¿Qué habría que cambiar para que se vean, sin tocar el cableado?
+
+### 0.3 Tu propia red
+
+```bash
+ip -4 addr show
+ip route
+```
+
+8. ¿Cuál es tu dirección y tu prefijo? ¿Cuántas máquinas entran en tu red?
+9. ¿Cuál es tu gateway? Verificá con `ipaddress` que está dentro de tu misma red.
+10. Si tenés Docker, mirá `docker0`. ¿Qué red usa? ¿Cuántos contenedores podrían convivir ahí?
+
+### 0.4 Dividir
+
+11. Partí `192.168.1.0/24` en cuatro subredes iguales. ¿Qué prefijo tienen? ¿Cuántos hosts cada una?
+
+```python
+for sub in ipaddress.ip_network('192.168.1.0/24').subnets(new_prefix=26):
+    print(sub)
+```
+
+12. Necesitás una subred para 100 hosts. ¿Qué prefijo es el más chico que alcanza? ¿Cuántas direcciones desperdiciás?
 
 ---
 

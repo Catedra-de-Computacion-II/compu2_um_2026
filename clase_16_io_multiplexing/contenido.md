@@ -1,4 +1,4 @@
-# Clase 16: I/O Multiplexing
+# Clase 16: Direccionamiento IPv4 e I/O Multiplexing
 
 ## Introducción: esperar por muchos a la vez
 
@@ -11,6 +11,101 @@ La pregunta de esta clase es otra: **¿y si en vez de esperar por una conexión,
 Eso es I/O multiplexing. Un solo hilo, una sola llamada, y el kernel te dice quién tiene datos. Es la idea sobre la que están construidos nginx, Redis, Node.js y —lo que nos importa acá— asyncio.
 
 > **Nota:** los archivos `servidor_select.py`, `servidor_selectors.py`, `chat.py` y `comparar.py` acompañan la clase. El último mide `select`, `poll` y `epoll` con cantidades crecientes de conexiones, y los números explican por qué existe `epoll`.
+
+---
+
+## Repaso: direccionamiento IPv4 y subredes
+
+Antes de entrar en tema, cerramos algo que quedó a medias en la clase 12. Ahí vimos que una dirección IPv4 son 32 bits y qué significan `127.0.0.1` y `0.0.0.0`, pero no cómo se agrupan las direcciones en redes. Eso hace falta para leer una configuración de Docker, entender por qué dos contenedores se ven entre sí, o diagnosticar por qué tu servidor no es alcanzable.
+
+### La máscara: qué parte es red y qué parte es host
+
+Una dirección IPv4 se parte en dos: un prefijo que identifica **la red** y un sufijo que identifica **la máquina** dentro de ella. La máscara dice dónde está el corte.
+
+```
+192.168.1.37 / 24
+└─────┬────┘  └┬┘
+   dirección   los primeros 24 bits son la red
+```
+
+Con `/24`, los primeros 24 bits (`192.168.1`) son la red y los 8 restantes son el host. Eso da 256 direcciones, de las cuales 254 son usables:
+
+```python
+import ipaddress
+
+red = ipaddress.ip_network('192.168.1.0/24')
+print(red.num_addresses)        # 256
+print(red.netmask)              # 255.255.255.0
+print(red.broadcast_address)    # 192.168.1.255
+```
+
+Las dos que se pierden son la **dirección de red** (`192.168.1.0`, que nombra a la red entera) y la de **broadcast** (`192.168.1.255`, que llega a todos).
+
+La notación `/24` se llama **CIDR**, y reemplazó al sistema viejo de clases A/B/C que dividía el espacio en bloques fijos y desperdiciaba direcciones.
+
+### Cuántas direcciones da cada prefijo
+
+La regla es simple: `2^(32 - prefijo)`.
+
+| Prefijo | Máscara | Direcciones | Hosts usables | Uso típico |
+|---------|---------|-------------|---------------|------------|
+| `/8` | 255.0.0.0 | 16.777.216 | 16.777.214 | `10.0.0.0/8` privada grande |
+| `/16` | 255.255.0.0 | 65.536 | 65.534 | Docker por defecto |
+| `/24` | 255.255.255.0 | 256 | 254 | Red doméstica |
+| `/30` | 255.255.255.252 | 4 | 2 | Enlace punto a punto |
+| `/32` | 255.255.255.255 | 1 | 1 | Un host solo |
+
+**Cuanto más grande el número, más chica la red.** Es la fuente de confusión más común: un `/30` no es "más grande" que un `/24`.
+
+### Saber si dos máquinas están en la misma red
+
+Esto es lo que hace tu sistema en cada paquete que manda. Si el destino está en la misma red, sale directo por la placa; si no, va al router.
+
+```python
+import ipaddress
+
+red = ipaddress.ip_network('192.168.1.0/24')
+print(ipaddress.ip_address('192.168.1.37') in red)     # True: sale directo
+print(ipaddress.ip_address('192.168.2.10') in red)     # False: va al gateway
+```
+
+Ahí está la explicación de un problema clásico: dos máquinas con IP en rangos distintos, conectadas al mismo switch, que no se ven. Físicamente están juntas; lógicamente, en redes separadas.
+
+### Verlo en tu máquina
+
+```bash
+ip -4 addr show          # tus direcciones con su prefijo
+ip route                 # qué red sale por dónde
+```
+
+Si tenés Docker, mirá `docker0`:
+
+```
+inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+```
+
+Eso dice que Docker armó una red privada `172.17.0.0/16` con 65.536 direcciones, que tu host es el `.0.1` dentro de ella, y que cada contenedor va a recibir una dirección de ese rango. Es la razón por la que los contenedores se ven entre sí sin configurar nada.
+
+### Dividir una red
+
+Un `/24` se puede partir en cuatro `/26`:
+
+```python
+red = ipaddress.ip_network('192.168.1.0/24')
+for sub in red.subnets(new_prefix=26):
+    print(sub, sub.num_addresses - 2, 'hosts')
+```
+
+```
+192.168.1.0/26     62 hosts
+192.168.1.64/26    62 hosts
+192.168.1.128/26   62 hosts
+192.168.1.192/26   62 hosts
+```
+
+Cada bit que le sumás al prefijo parte la red en dos. Es lo que hace un administrador para separar tráfico —servidores por un lado, invitados por otro— sin pedir más direcciones.
+
+> **Trabajá siempre con `ipaddress`**, no parseando strings a mano. Calcular máscaras con operaciones de bits propias es una fuente inagotable de bugs, y la biblioteca ya resuelve IPv4 e IPv6 con la misma API.
 
 ---
 

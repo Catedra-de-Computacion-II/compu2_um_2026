@@ -18,7 +18,7 @@
 #clase_13_sockets_tcp/
 #clase_14_servidores_concurrentes/
 #clase_15_udp/
-clase_16_io_multiplexing/
+#clase_16_io_multiplexing/
 clase_17_http_fastapi/
 clase_18_yield_a_asyncio/
 clase_19_asyncio_red/

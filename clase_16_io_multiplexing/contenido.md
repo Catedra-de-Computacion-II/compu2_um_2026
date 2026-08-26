@@ -1,4 +1,4 @@
-# Clase 16: Direccionamiento IPv4 e I/O Multiplexing
+# Clase 16: I/O Multiplexing
 
 ## Introducción: esperar por muchos a la vez
 
@@ -14,52 +14,13 @@ Eso es I/O multiplexing. Un solo hilo, una sola llamada, y el kernel te dice qui
 
 ---
 
-## Repaso: direccionamiento IPv4 y subredes
+## Antes de empezar: direcciones que vas a escribir en el código
 
-Antes de entrar en tema, cerramos algo que quedó a medias en la clase 12. Ahí vimos que una dirección IPv4 son 32 bits y qué significan `127.0.0.1` y `0.0.0.0`, pero no cómo se agrupan las direcciones en redes. Eso hace falta para leer una configuración de Docker, entender por qué dos contenedores se ven entre sí, o diagnosticar por qué tu servidor no es alcanzable.
+Ustedes ven direccionamiento en detalle en Redes. Acá nos interesa solo lo que hace falta para que un programa funcione: qué escribir en un `bind()`, qué significa lo que devuelve `getsockname()`, y por qué a veces el servidor no es alcanzable.
 
-### La máscara: qué parte es red y qué parte es host
+### El prefijo, en una línea
 
-Una dirección IPv4 se parte en dos: un prefijo que identifica **la red** y un sufijo que identifica **la máquina** dentro de ella. La máscara dice dónde está el corte.
-
-```
-192.168.1.37 / 24
-└─────┬────┘  └┬┘
-   dirección   los primeros 24 bits son la red
-```
-
-Con `/24`, los primeros 24 bits (`192.168.1`) son la red y los 8 restantes son el host. Eso da 256 direcciones, de las cuales 254 son usables:
-
-```python
-import ipaddress
-
-red = ipaddress.ip_network('192.168.1.0/24')
-print(red.num_addresses)        # 256
-print(red.netmask)              # 255.255.255.0
-print(red.broadcast_address)    # 192.168.1.255
-```
-
-Las dos que se pierden son la **dirección de red** (`192.168.1.0`, que nombra a la red entera) y la de **broadcast** (`192.168.1.255`, que llega a todos).
-
-La notación `/24` se llama **CIDR**, y reemplazó al sistema viejo de clases A/B/C que dividía el espacio en bloques fijos y desperdiciaba direcciones.
-
-### Cuántas direcciones da cada prefijo
-
-La regla es simple: `2^(32 - prefijo)`.
-
-| Prefijo | Máscara | Direcciones | Hosts usables | Uso típico |
-|---------|---------|-------------|---------------|------------|
-| `/8` | 255.0.0.0 | 16.777.216 | 16.777.214 | `10.0.0.0/8` privada grande |
-| `/16` | 255.255.0.0 | 65.536 | 65.534 | Docker por defecto |
-| `/24` | 255.255.255.0 | 256 | 254 | Red doméstica |
-| `/30` | 255.255.255.252 | 4 | 2 | Enlace punto a punto |
-| `/32` | 255.255.255.255 | 1 | 1 | Un host solo |
-
-**Cuanto más grande el número, más chica la red.** Es la fuente de confusión más común: un `/30` no es "más grande" que un `/24`.
-
-### Saber si dos máquinas están en la misma red
-
-Esto es lo que hace tu sistema en cada paquete que manda. Si el destino está en la misma red, sale directo por la placa; si no, va al router.
+Cuando veas `192.168.1.37/24`, el `/24` dice que los primeros 24 bits identifican la red y el resto la máquina. De ahí salen dos cosas que sí importan al programar:
 
 ```python
 import ipaddress
@@ -69,43 +30,89 @@ print(ipaddress.ip_address('192.168.1.37') in red)     # True: sale directo
 print(ipaddress.ip_address('192.168.2.10') in red)     # False: va al gateway
 ```
 
-Ahí está la explicación de un problema clásico: dos máquinas con IP en rangos distintos, conectadas al mismo switch, que no se ven. Físicamente están juntas; lógicamente, en redes separadas.
+Si el destino está en tu red, el paquete sale por la placa; si no, va al router. Eso explica el problema clásico de dos contenedores que no se ven: están en redes distintas aunque corran en la misma máquina.
 
-### Verlo en tu máquina
+Con Docker lo vas a ver seguido:
 
 ```bash
-ip -4 addr show          # tus direcciones con su prefijo
-ip route                 # qué red sale por dónde
+ip -4 addr show docker0
+# inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
 ```
 
-Si tenés Docker, mirá `docker0`:
+Docker armó una red `172.17.0.0/16` y cada contenedor recibe una dirección de ahí. Por eso se ven entre sí sin configurar nada. En el TP2 vas a leer exactamente esto.
 
-```
-inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
-```
+> **Usá `ipaddress`**, no parsees strings ni calcules máscaras a mano. La biblioteca resuelve IPv4 e IPv6 con la misma API.
 
-Eso dice que Docker armó una red privada `172.17.0.0/16` con 65.536 direcciones, que tu host es el `.0.1` dentro de ella, y que cada contenedor va a recibir una dirección de ese rango. Es la razón por la que los contenedores se ven entre sí sin configurar nada.
+---
 
-### Dividir una red
+## Una pincelada de IPv6
 
-Un `/24` se puede partir en cuatro `/26`:
+IPv6 lo tenés completo como material de estudio en `bloque_0_autonomo/ipv6/`, con ejercicios y dos programas para correr. Acá van los tres puntos que te van a morder si los ignorás al programar.
+
+### Las direcciones especiales tienen equivalente
+
+| IPv4 | IPv6 | Significa |
+|------|------|-----------|
+| `127.0.0.1` | `::1` | Solo esta máquina |
+| `0.0.0.0` | `::` | Todas las interfaces |
+
+Los `::` reemplazan a una secuencia de ceros, y solo pueden aparecer **una vez** por dirección (si aparecieran dos, sería ambiguo cuántos ceros representa cada uno).
+
+En una URL van entre corchetes, para no confundir los dos puntos de la dirección con el del puerto: `http://[::1]:8080/`.
+
+### La tupla de dirección tiene cuatro elementos, no dos
+
+Esto rompe código real:
 
 ```python
-red = ipaddress.ip_network('192.168.1.0/24')
-for sub in red.subnets(new_prefix=26):
-    print(sub, sub.num_addresses - 2, 'hosts')
+host, puerto = sock.getsockname()      # ValueError con IPv6
 ```
 
-```
-192.168.1.0/26     62 hosts
-192.168.1.64/26    62 hosts
-192.168.1.128/26   62 hosts
-192.168.1.192/26   62 hosts
+Un socket IPv6 devuelve `('::1', 8080, 0, 0)` — los dos extras son `flowinfo` y `scope_id`. La forma que funciona con ambas familias:
+
+```python
+info = sock.getsockname()
+host, puerto = info[0], info[1]
 ```
 
-Cada bit que le sumás al prefijo parte la red en dos. Es lo que hace un administrador para separar tráfico —servidores por un lado, invitados por otro— sin pedir más direcciones.
+Es un bug que no aparece en desarrollo si probás solo con IPv4, y explota el día que alguien se conecta por IPv6.
 
-> **Trabajá siempre con `ipaddress`**, no parseando strings a mano. Calcular máscaras con operaciones de bits propias es una fuente inagotable de bugs, y la biblioteca ya resuelve IPv4 e IPv6 con la misma API.
+### No elijas la familia a mano
+
+Lo intuitivo es un `if` que decide entre IPv4 e IPv6. Lo correcto es dejar que el sistema resuelva:
+
+```python
+import socket
+
+for familia, tipo, proto, _, direccion in socket.getaddrinfo(
+        'ejemplo.com', 80, type=socket.SOCK_STREAM):
+    s = socket.socket(familia, tipo, proto)
+    try:
+        s.connect(direccion)
+        break                    # funcionó
+    except OSError:
+        s.close()                # probar la siguiente
+```
+
+`getaddrinfo()` devuelve las dos familias ordenadas por preferencia del sistema, y hay que **probarlas en orden**: tener una dirección IPv6 no garantiza que la ruta funcione. Es la situación de muchas conexiones en Argentina —el ISP da IPv6 pero sin tránsito— y un cliente que no reintenta con IPv4 simplemente falla.
+
+Como cliente, `socket.create_connection()` ya hace todo esto por vos. Es una razón más para usarlo.
+
+### Y para el servidor: dual-stack
+
+Un socket IPv6 puede atender también IPv4, si se lo pedís:
+
+```python
+s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)   # explícito, siempre
+s.bind(('::', 8080))
+```
+
+Los clientes IPv4 aparecen con el prefijo `::ffff:` —`::ffff:127.0.0.1` es el mismo cliente que `127.0.0.1`—, así que si filtrás o logueás por IP, normalizalos.
+
+El default de `IPV6_V6ONLY` **varía entre sistemas operativos**: Linux suele traer 0 y Windows 1. Ponelo explícito o tu servidor se va a comportar distinto en la máquina del compañero.
+
+> Todo esto vale igual para lo que sigue: multiplexing funciona sobre cualquiera de las dos familias, porque opera sobre descriptores y no le importa qué protocolo hay debajo.
 
 ---
 

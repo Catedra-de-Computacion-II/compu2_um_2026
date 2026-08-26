@@ -82,7 +82,7 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 
 | Clase | Fecha | Tema |
 |-------|-------|------|
-| 16 | 01/09 | Direccionamiento IPv4 e I/O Multiplexing |
+| 16 | 01/09 | I/O Multiplexing (+ pincelada de IPv6) |
 | 17 | 08/09 | HTTP + FastAPI — **Enunciado TP2** |
 | — | 15/09 | *(mesas de exámenes: sin clase)* |
 | 18 | 22/09 | De yield a asyncio |

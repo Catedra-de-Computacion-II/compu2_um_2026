@@ -1,4 +1,4 @@
-# Clase 16: Direccionamiento IPv4 e I/O Multiplexing - Ejercicios Prácticos
+# Clase 16: I/O Multiplexing - Ejercicios Prácticos
 
 Los archivos `servidor_select.py`, `servidor_selectors.py`, `chat.py` y `comparar.py` acompañan la clase. Empezá corriéndolos para ver el comportamiento esperado.
 
@@ -6,55 +6,62 @@ Casi todos los ejercicios necesitan **dos o tres terminales**.
 
 ---
 
-## Ejercicio 0: Direccionamiento IPv4
+## Ejercicio 0: Direcciones en el código
 
-Repaso previo. Usá `ipaddress` en vez de calcular máscaras a mano.
+Corto y previo. El detalle de direccionamiento lo ven en Redes; acá solo lo que afecta a un programa.
 
-### 0.1 Leer un prefijo
+### 0.1 Misma red o no
 
 ```python
 import ipaddress
-red = ipaddress.ip_network('192.168.1.0/24')
-```
-
-1. ¿Cuántas direcciones tiene? ¿Cuántos hosts usables? ¿Por qué la diferencia es 2?
-2. ¿Cuál es la máscara en notación decimal? ¿Y la dirección de broadcast?
-3. Repetí con `/16`, `/26` y `/30`. Completá una tabla de prefijo, direcciones y hosts.
-4. ¿Cuál es más grande, un `/24` o un `/30`? Explicá por qué la intuición engaña.
-
-### 0.2 Misma red o no
-
-```python
 red = ipaddress.ip_network('192.168.1.0/24')
 print(ipaddress.ip_address('192.168.1.37') in red)
 print(ipaddress.ip_address('192.168.2.10') in red)
 ```
 
-5. ¿Qué hace tu sistema distinto en cada caso al mandar un paquete?
-6. Dos máquinas, `10.0.0.5/24` y `10.0.1.7/24`, conectadas al mismo switch. ¿Se ven? ¿Por qué?
-7. ¿Qué habría que cambiar para que se vean, sin tocar el cableado?
+1. ¿Qué hace tu sistema distinto en cada caso al mandar un paquete?
+2. Mirá tu red con `ip -4 addr show`. Si tenés Docker, ¿qué rango usa `docker0`? ¿Por qué los contenedores se ven entre sí sin configurar nada?
 
-### 0.3 Tu propia red
-
-```bash
-ip -4 addr show
-ip route
-```
-
-8. ¿Cuál es tu dirección y tu prefijo? ¿Cuántas máquinas entran en tu red?
-9. ¿Cuál es tu gateway? Verificá con `ipaddress` que está dentro de tu misma red.
-10. Si tenés Docker, mirá `docker0`. ¿Qué red usa? ¿Cuántos contenedores podrían convivir ahí?
-
-### 0.4 Dividir
-
-11. Partí `192.168.1.0/24` en cuatro subredes iguales. ¿Qué prefijo tienen? ¿Cuántos hosts cada una?
+### 0.2 La tupla de IPv6
 
 ```python
-for sub in ipaddress.ip_network('192.168.1.0/24').subnets(new_prefix=26):
-    print(sub)
+import socket
+s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+s.bind(('::1', 0))
+print(s.getsockname())
+host, puerto = s.getsockname()      # ?
 ```
 
-12. Necesitás una subred para 100 hosts. ¿Qué prefijo es el más chico que alcanza? ¿Cuántas direcciones desperdiciás?
+3. ¿Qué imprime `getsockname()`? ¿Cuántos elementos tiene?
+4. ¿Qué error da la última línea? ¿Cómo se escribe para que funcione con IPv4 e IPv6?
+5. ¿Por qué este bug no aparece si probás solo con IPv4?
+
+### 0.3 getaddrinfo
+
+```python
+import socket
+for info in socket.getaddrinfo('google.com', 80, type=socket.SOCK_STREAM):
+    print(info[0].name, info[4])
+```
+
+6. ¿Devuelve una familia o las dos? ¿En qué orden?
+7. ¿Por qué hay que **probar en orden** y no quedarse con la primera? (Pista: ¿tenés ruta IPv6?)
+8. ¿Qué hace `socket.create_connection()` que te ahorra este bucle?
+
+### 0.4 Dual-stack
+
+```python
+s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+s.bind(('::', 8080)); s.listen(5)
+```
+
+9. Conectate desde IPv6 (`::1`) y desde IPv4 (`127.0.0.1`). ¿Qué dirección ve el servidor en cada caso?
+10. ¿Qué prefijo tiene la del cliente IPv4? ¿Por qué importa si tu servidor filtra por IP?
+11. Poné `IPV6_V6ONLY` en 1 y repetí. ¿Qué pasa con el cliente IPv4?
+12. ¿Por qué conviene ponerlo explícito aunque el default de tu sistema te sirva?
+
+> Todo esto está desarrollado en `bloque_0_autonomo/ipv6/`, con más ejercicios y dos programas para correr.
 
 ---
 

@@ -381,12 +381,12 @@ d) `epoll` deja de funcionar
 
 | Puntaje | Diagnóstico |
 |---------|-------------|
-| 38-42 correctas | Excelente. Avanzá a la clase 17 (HTTP + FastAPI) |
+| 38-42 correctas | Excelente. Avanzá a la clase 18 (HTTP + FastAPI) |
 | 31-37 | Buen nivel. Repasá los temas donde fallaste |
 | 21-30 | Nivel intermedio. Rehacé el ejercicio 3 (comparar) y el 7 |
 | < 21 | Repasá el contenido completo. Consultá con el docente antes de la próxima clase |
 
-> Las preguntas 7 y 8 son bugs reales que vas a cometer si no las tenés claras. Y la 34 y la 40 son las que van a explicar el comportamiento de asyncio en las clases 18-20.
+> Las preguntas 7 y 8 son bugs reales que vas a cometer si no las tenés claras. Y la 34 y la 40 son las que van a explicar el comportamiento de asyncio en las clases 19-21.
 
 ---
 

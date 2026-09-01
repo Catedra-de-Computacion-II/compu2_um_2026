@@ -369,7 +369,7 @@ while True:
 
 Ese `callback(clave.fileobj)` del final es el patrón que conviene mirar con atención: **el bucle no sabe qué hace cada socket**, solo despacha al handler que se registró con él.
 
-Eso tiene nombre —*event loop*— y es, en esencia, lo que hace asyncio por dentro. Cuando en la clase 18 veamos corrutinas, el bucle va a ser reconociblemente este, con `await` en lugar de callbacks.
+Eso tiene nombre —*event loop*— y es, en esencia, lo que hace asyncio por dentro. Cuando en la clase 19 veamos corrutinas, el bucle va a ser reconociblemente este, con `await` en lugar de callbacks.
 
 **`unregister()` antes de `close()`.** Si cerrás un socket sin desregistrarlo, el selector queda con un fd muerto y el comportamiento es indefinido: puede tirar excepción o reportar eventos fantasma. Es el error más común con esta API.
 
@@ -463,7 +463,7 @@ En la práctica, hoy nadie escribe un servidor nuevo con `selectors` a mano: se 
 
 ## Preparación para la próxima clase
 
-En la **clase 17 (HTTP + FastAPI)** subimos de capa. Hasta acá programamos el transporte; ahora vamos a ver el protocolo de aplicación que corre encima y que sostiene toda la web. Vamos a leer HTTP a mano —como hicimos con `nc` en la clase 12— y después a construir una API con FastAPI.
+En la **clase 18 (HTTP + FastAPI)** subimos de capa. Hasta acá programamos el transporte; ahora vamos a ver el protocolo de aplicación que corre encima y que sostiene toda la web. Vamos a leer HTTP a mano —como hicimos con `nc` en la clase 12— y después a construir una API con FastAPI.
 
 Es también la clase donde se entrega el **enunciado del TP2**.
 

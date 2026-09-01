@@ -388,7 +388,7 @@ Y el pool saturado, con `--workers 5` contra 20 clientes:
 
 Cuatro tandas de cinco. Nadie fue rechazado; los últimos quince simplemente esperaron su turno.
 
-Vale la pena que corras el benchmark subiendo la cantidad de clientes hasta que algo se rompa. En la máquina donde se probó esto, 200 clientes concurrentes contra el servidor de threads completaron en 1,13 s sin un solo fallo — el techo está bastante más arriba de lo que uno esperaría, y encontrarlo es el argumento para la clase 16.
+Vale la pena que corras el benchmark subiendo la cantidad de clientes hasta que algo se rompa. En la máquina donde se probó esto, 200 clientes concurrentes contra el servidor de threads completaron en 1,13 s sin un solo fallo — el techo está bastante más arriba de lo que uno esperaría, y encontrarlo es el argumento para la clase 17.
 
 ---
 
@@ -418,7 +418,7 @@ En 1999, Dan Kegel escribió un texto famoso preguntando cómo hacer para atende
 
 La solución no fue hacer los threads más baratos, sino cambiar el modelo: **un solo hilo que atiende muchas conexiones**, preguntándole al sistema operativo cuáles tienen datos listos en vez de bloquearse en cada una.
 
-Eso es I/O multiplexing, y es la clase 16. Es también la idea sobre la que está construido asyncio, y la razón por la que nginx maneja con un puñado de procesos lo que Apache necesitaba miles de threads para hacer.
+Eso es I/O multiplexing, y es la clase 17. Es también la idea sobre la que está construido asyncio, y la razón por la que nginx maneja con un puñado de procesos lo que Apache necesitaba miles de threads para hacer.
 
 ---
 

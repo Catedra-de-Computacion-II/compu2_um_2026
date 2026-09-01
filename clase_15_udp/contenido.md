@@ -445,7 +445,7 @@ El criterio de fondo: **si retransmitir un dato viejo no tiene sentido, TCP te e
 
 ## Preparación para la próxima clase
 
-En la **clase 16 (I/O Multiplexing)** volvemos al problema que dejó abierto la clase 14: cómo atender muchos clientes sin dedicarle un thread ni un proceso a cada uno. La respuesta es `select()`, `poll()` y `epoll()`, que permiten esperar por muchos sockets a la vez en un solo hilo. Es la base sobre la que está construido asyncio.
+En la **clase 16 (socketserver)** volvemos a TCP, pero desde arriba: el framework de la biblioteca estándar que resuelve en diez líneas lo que veníamos escribiendo a mano. Vamos a ver su jerarquía de clases, los mixins que le agregan concurrencia, y por qué su diseño es un buen caso de estudio de herencia múltiple.
 
 Aparte, queda **IPv6 como material de estudio autónomo** en `bloque_0_autonomo/ipv6/`: direccionamiento, `getaddrinfo()` y servidores dual-stack. Es corto y aplica tanto a TCP como a UDP; conviene leerlo antes del TP2.
 

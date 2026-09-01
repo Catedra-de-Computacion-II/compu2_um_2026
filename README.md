@@ -82,16 +82,16 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 
 | Clase | Fecha | Tema |
 |-------|-------|------|
-| 16 | 01/09 | I/O Multiplexing (+ pincelada de IPv6) |
-| 17 | 08/09 | HTTP + FastAPI — **Enunciado TP2** |
+| 16 | 01/09 | socketserver |
+| 17 | 08/09 | I/O Multiplexing |
 | — | 15/09 | *(mesas de exámenes: sin clase)* |
-| 18 | 22/09 | De yield a asyncio |
-| 19 | 29/09 | Asyncio en red |
-| 20 | 06/10 | Asyncio avanzado |
-| 21 | 13/10 | concurrent.futures |
-| 22 | 20/10 | Celery I |
-| 23 | 27/10 | Celery II |
-| 24 | 03/11 | Compose avanzado — **Entrega TP2** |
+| 18 | 22/09 | HTTP + FastAPI — **Enunciado TP2** |
+| 19 | 29/09 | De yield a asyncio |
+| 20 | 06/10 | Asyncio en red |
+| 21 | 13/10 | Asyncio avanzado |
+| 22 | 20/10 | concurrent.futures |
+| 23 | 27/10 | Celery I |
+| 24 | 03/11 | Celery II — **Entrega TP2** |
 | — | 09-13/11 | *(recuperaciones y firma de regularidades)* |
 
 > El cronograma del segundo cuatrimestre está ajustado al calendario académico de

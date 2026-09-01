@@ -140,7 +140,7 @@ async def manejar(conn):
 
 Cada `await` es un punto donde la función se suspende y el bucle atiende a otro, pero el código se lee de arriba abajo, con `try/except` normales y variables locales que sobreviven entre pasos.
 
-El mecanismo que hace posible esa suspensión son los generadores y `.send()` —lo que vimos en el bloque 0 y lo que vamos a construir en la clase 18. El multiplexor de esta clase queda abajo, intacto, haciendo el trabajo.
+El mecanismo que hace posible esa suspensión son los generadores y `.send()` —lo que vimos en el bloque 0 y lo que vamos a construir en la clase 19. El multiplexor de esta clase queda abajo, intacto, haciendo el trabajo.
 
 ---
 

@@ -18,15 +18,16 @@
 #clase_13_sockets_tcp/
 #clase_14_servidores_concurrentes/
 #clase_15_udp/
-#clase_16_io_multiplexing/
-clase_17_http_fastapi/
-clase_18_yield_a_asyncio/
-clase_19_asyncio_red/
-clase_20_asyncio_avanzado/
-clase_21_concurrent_futures/
-clase_22_celery_1/
-clase_23_celery_2/
-clase_24_compose_avanzado/
+#clase_16_socketserver/
+#clase_17_io_multiplexing/
+clase_18_http_fastapi/
+clase_19_yield_a_asyncio/
+clase_20_asyncio_red/
+clase_21_asyncio_avanzado/
+clase_22_concurrent_futures/
+clase_23_celery_1/
+clase_24_celery_2/
+clase_25_compose_avanzado/
 
 # === Trabajos prácticos (liberar cuando corresponda) ===
 trabajos_practicos/

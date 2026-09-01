@@ -343,6 +343,8 @@ d) Solo en Linux
 | < 19 | Repasá el contenido completo. Consultá con el docente antes de la próxima clase |
 
 > Las preguntas 16, 17, 28, 32 y 33 son las que más importan en la práctica: son los errores que rompen código real. La 28 en particular es un bug que no da error y te deja un servidor secuencial creyendo que es concurrente.
+>
+> Si fallaste varias, volvé sobre la progresión del contenido y rehacé los pasos escribiendo el código vos, en vez de leerlo.
 
 ---
 

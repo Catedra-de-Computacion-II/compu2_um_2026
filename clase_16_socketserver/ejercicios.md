@@ -4,220 +4,152 @@ Los archivos `eco_tcp.py`, `eco_udp.py`, `comandos.py` y `personalizado.py` acom
 
 ---
 
-## Ejercicio 1: La jerarquía
+## Ejercicio 1: Recorrer la progresión
 
-### 1.1 Explorarla desde Python
+Rehacé los pasos 1 a 6 del contenido **escribiéndolos vos**, sin copiar y pegar. Cada uno arranca del anterior.
 
-```python
-import socketserver
-for n in ['TCPServer', 'UDPServer', 'UnixStreamServer', 'UnixDatagramServer',
-          'ThreadingTCPServer', 'ForkingTCPServer']:
-    print(n, '->', getattr(socketserver, n).__bases__)
-```
+### 1.1 El mínimo
 
-1. Compará la salida con el diagrama de la clase. ¿De quién hereda `UDPServer`?
-2. El diagrama muestra `UDPServer` como hermano de `TCPServer`, pero el código dice otra cosa. ¿Es un error del diagrama? Justificá.
-3. ¿Qué implica esa herencia? Buscá algún atributo que `UDPServer` reciba de `TCPServer` y que no tenga sentido en UDP.
+Escribí el servidor de 5 líneas del paso 1 y probalo con `nc`.
 
-### 1.2 Los atributos de clase
+1. ¿Qué es `self.request`? Imprimí `type(self.request)` para confirmarlo.
+2. Agregá un `print(id(self))` en `handle()` y conectate tres veces. ¿Qué observás?
+3. ¿Cuántas veces se ejecuta `handle()` si un cliente manda tres mensajes en la misma conexión? Probalo.
 
-```python
-print(socketserver.TCPServer.allow_reuse_address)
-print(socketserver.TCPServer.request_queue_size)
-print(socketserver.TCPServer.address_family)
-```
+### 1.2 El puerto ocupado
 
-4. ¿A qué equivale cada uno de lo que escribimos a mano en la clase 13?
-5. `allow_reuse_address` viene en `False`. Levantá un servidor sin cambiarlo, matalo con Ctrl+C y relanzalo de inmediato. ¿Qué error da?
-6. Poné `allow_reuse_address = True` y repetí. ¿Desaparece?
+4. Conectate una vez, cortá el servidor con Ctrl+C y relanzalo enseguida. ¿Qué error da?
+5. Ahora repetí **sin haberte conectado nunca**. ¿Da el mismo error? Explicá la diferencia. (Pista: TIME_WAIT necesita que haya habido una conexión.)
+6. Agregá `allow_reuse_address = True` y verificá que desaparece.
 
-### 1.3 IPv6 en una línea
+### 1.3 Concurrencia
 
-7. Tomá `eco_tcp.py` y hacelo IPv6 cambiando **un solo atributo**. ¿Cuál?
-8. Conectate con `nc -6 ::1 8080`. ¿Anda?
-9. ¿Qué habría que agregar para que acepte también IPv4? (Pista: clase 15, `IPV6_V6ONLY`.) Mirá `personalizado.py --v6`.
+7. Con el servidor secuencial, agregá `time.sleep(3)` en `handle()` y conectá dos clientes. Medí cuánto tarda el segundo.
+8. Cambiá a `ThreadingTCPServer` y repetí la medición. Anotá los dos números.
+9. Probá con `ForkingTCPServer`. Agregá `print(os.getpid())` al handler: ¿cuántos PIDs distintos aparecen?
 
----
+### 1.4 Framing
 
-## Ejercicio 2: Los handlers
+10. Con `BaseRequestHandler` y `recv(1024)`, mandá `printf 'UNO\nDOS\n' | nc localhost 8080`. ¿Qué recibe el servidor?
+11. Cambiá a `StreamRequestHandler` iterando `self.rfile`. ¿Qué cambia?
+12. ¿Por qué no hay que mezclar `self.rfile` con `self.request.recv()` en el mismo handler?
 
-### 2.1 Los tres tipos
+### 1.5 Estado
 
-```bash
-python3 eco_tcp.py
-```
+13. Implementá el contador con el atributo en el handler. ¿Por qué siempre da 1?
+14. Movelo al servidor. ¿Ahora sí cuenta?
+15. Sacá el `Lock` y lanzá 200 conexiones rápidas. ¿Se pierde alguna cuenta? (Puede que no: explicá por qué eso **no** significa que el código sea correcto.)
 
-1. `EchoHandler` usa `StreamRequestHandler`. ¿Qué le da eso que `BaseRequestHandler` no?
-2. Reescribilo con `BaseRequestHandler`. ¿Cuánto código extra necesitás para el framing por líneas?
-3. Compará tu versión con `framing.py` de la clase 13. ¿Es el mismo problema?
+### 1.6 Errores
 
-### 2.2 La asimetría de self.request
-
-```bash
-python3 eco_udp.py            # BaseRequestHandler
-python3 eco_udp.py --files    # DatagramRequestHandler
-```
-
-4. En `EchoUDPCrudo`, ¿qué es `self.request`? ¿Y en un handler TCP?
-5. ¿Por qué en UDP hay que pasar `self.client_address` al responder, y en TCP no?
-6. ¿Qué esconde `DatagramRequestHandler`? Compará las dos implementaciones del archivo.
-
-### 2.3 Una instancia por conexión
-
-Agregale esto a un handler:
-
-```python
-class Contador(socketserver.StreamRequestHandler):
-    veces = 0                      # atributo de CLASE
-
-    def handle(self):
-        self.n = getattr(self, 'n', 0) + 1      # atributo de INSTANCIA
-        Contador.veces += 1
-        self.wfile.write(f'instancia={self.n} clase={Contador.veces}\n'.encode())
-```
-
-7. Conectate varias veces. ¿Qué pasa con `self.n`? ¿Y con `Contador.veces`?
-8. Explicá la diferencia. ¿Cuántos objetos handler se crean si se conectan 10 clientes?
-9. Entonces, ¿dónde hay que guardar el estado que debe sobrevivir entre conexiones?
+16. Hacé que `handle()` lance una excepción con cierto input. ¿Se cae el servidor?
+17. Agregá `print` en `setup()` y `finish()`. Cuando `handle()` falla, ¿se ejecuta `finish()`? ¿En qué orden respecto de `handle_error()`?
+18. Sacá el `super().setup()` de tu `setup()`. ¿Qué se rompe y por qué?
 
 ---
 
-## Ejercicio 3: Los mixins (obligatorio)
+## Ejercicio 2: Los mixins (obligatorio)
 
 ### Objetivo
 
-Entender cómo los mixins agregan concurrencia sin duplicar la jerarquía, y por qué el orden de herencia importa.
+Entender cómo un cambio de clase base agrega concurrencia, y por qué el orden de herencia importa.
 
-### Parte A: leer el código fuente
+### Parte A: leer el código
 
 ```python
 import inspect, socketserver
 print(inspect.getsource(socketserver.ThreadingMixIn))
 ```
 
-1. ¿Cuántos métodos define `ThreadingMixIn`? ¿Cuál es el que importa?
-2. Buscá `process_request` en `TCPServer` y en `ThreadingMixIn`. ¿Qué hace cada uno?
-3. Mirá también `ForkingMixIn`. ¿Dónde cosecha los hijos? ¿Por qué no hay zombies como en la clase 14?
+1. ¿Cuántos métodos define `ThreadingMixIn`? ¿Cuál es el que produce la concurrencia?
+2. Compará `process_request` de `BaseServer` con el del mixin. ¿En qué se diferencian?
+3. Mirá `ForkingMixIn`. ¿Dónde cosecha los hijos? ¿Por qué no hay zombies como en la clase 14?
+4. ¿Cuánto código propio tiene `ThreadingTCPServer`? Buscá su definición.
 
-### Parte B: el orden importa
+### Parte B: el orden
 
 ```python
-import socketserver
+class Bien(socketserver.ThreadingMixIn, socketserver.TCPServer): pass
+class Mal(socketserver.TCPServer, socketserver.ThreadingMixIn): pass
 
-class Correcto(socketserver.ThreadingMixIn, socketserver.TCPServer): pass
-class AlReves(socketserver.TCPServer, socketserver.ThreadingMixIn): pass
-
-print([c.__name__ for c in Correcto.__mro__])
-print([c.__name__ for c in AlReves.__mro__])
+for C in (Bien, Mal):
+    print(C.__name__, [k.__name__ for k in C.__mro__][:4])
 ```
 
-4. ¿En qué se diferencian los dos MRO?
-5. Levantá un servidor con cada uno y conectá dos clientes lentos. ¿Cuál atiende en paralelo?
-6. El que está al revés, ¿lanza algún error? ¿Por qué eso lo hace un bug peligroso?
+5. ¿En qué se diferencian los dos MRO?
+6. ¿Qué clase provee `process_request` en cada caso?
 
-### Parte C: threads contra procesos
-
-```bash
-python3 eco_tcp.py 8080           # threads
-python3 eco_tcp.py --fork 8080    # procesos
+```python
+for C in (Bien, Mal):
+    print(C.__name__, next(k.__name__ for k in C.__mro__ if 'process_request' in k.__dict__))
 ```
 
-7. Conectá 5 clientes a cada uno y mirá la salida. ¿Qué cambia entre los dos modos?
-8. Con `--fork`, ¿cuántos PIDs distintos aparecen? Verificalo también con `ps --ppid $(pgrep -f eco_tcp)`.
-9. Contá los threads del proceso en el modo threading: `ls /proc/$(pgrep -f eco_tcp)/task | wc -l`.
+7. Levantá un servidor lento con cada uno y conectá dos clientes. ¿Cuál atiende en paralelo?
+8. `Mal`, ¿lanza algún error? ¿Por qué eso lo convierte en un bug peligroso?
 
-### Parte D: el estado no se comparte igual
+### Parte C: forking y memoria
 
-Agregale a `comandos.py` un contador global y probalo con los dos mixins.
+9. Tomá el contador del paso 5 y cambiá a `ForkingTCPServer`. ¿Qué devuelve ahora?
+10. Explicá por qué, en términos de lo que vimos en la clase 4 sobre `fork()`.
+11. ¿Qué herramienta de la clase 9 haría falta para arreglarlo? Implementalo con `multiprocessing.Value`.
+12. ¿Dónde hay que crear ese `Value`: en el handler o en el `__init__` del servidor? ¿Por qué?
 
-10. Con `ThreadingTCPServer`, el comando `CONTADOR` funciona. ¿Por qué?
-11. Cambiá a `ForkingTCPServer` y probá de nuevo. ¿Qué devuelve `CONTADOR`? ¿Por qué?
-12. ¿Qué herramienta de la clase 9 haría falta para que funcione con forking?
+### Parte D: daemon_threads
 
-### Parte E: daemon_threads
-
-13. Sacá `daemon_threads = True` de `eco_tcp.py`. Conectate con `nc`, dejalo abierto y matá el servidor con Ctrl+C. ¿Qué pasa?
-14. Restauralo y repetí. ¿Cuál es la diferencia?
+13. Sacá `daemon_threads = True`, conectate con `nc`, dejá el cliente abierto y matá el servidor con Ctrl+C. ¿Qué pasa?
+14. Restauralo y repetí. Explicá la diferencia.
 
 ---
 
-## Ejercicio 4: El ciclo de vida
+## Ejercicio 3: UDP
 
 ```bash
-python3 personalizado.py
+python3 eco_udp.py
+python3 eco_udp.py --files
 ```
 
-Conectate y mirá la salida.
-
-1. Anotá el orden exacto en que aparecen: `server_bind`, `server_activate`, `verify_request`, `setup`, `handle`, `finish`.
-2. ¿Cuáles se ejecutan una sola vez y cuáles por cada conexión?
-
-### 4.1 verify_request
-
-```bash
-python3 personalizado.py --bloquear
-```
-
-3. Conectate desde localhost. ¿Qué pasa? ¿Se llega a ejecutar `handle()`?
-4. Escribí un `verify_request` que rechace después de N conexiones del mismo cliente.
-5. ¿Por qué conviene rechazar ahí y no al principio de `handle()`?
-
-### 4.2 handle_error
-
-Con el servidor corriendo, mandá `CRASH`:
-
-```bash
-echo "CRASH" | nc localhost 8080
-```
-
-6. ¿Se cae el servidor? ¿Qué imprime?
-7. Conectate de nuevo después del crash. ¿Sigue funcionando?
-8. Mirá el log: ¿se ejecutó `finish()` para la conexión que falló? ¿Por qué es importante?
-
-### 4.3 setup y finish
-
-9. En `comandos.py`, `setup()` y `finish()` llevan la cuenta de conexiones activas. ¿Qué pasaría si esa lógica estuviera dentro de `handle()`?
-10. ¿Por qué ambos llaman a `super()`? Sacá el `super().setup()` y mirá qué se rompe.
+1. En `EchoUDPCrudo`, ¿qué es `self.request`? Imprimí su tipo.
+2. ¿Por qué hay que pasar `self.client_address` al `sendto()`, si en TCP no hacía falta?
+3. Compará las dos implementaciones del archivo. ¿Qué esconde `DatagramRequestHandler`?
+4. ¿Existe `ThreadingUDPServer`? ¿Tiene sentido, si UDP no tiene conexiones? Pensá en un handler que tarde.
 
 ---
 
-## Ejercicio 5: Estado compartido y sincronización
+## Ejercicio 4: Un servidor de verdad
 
-```bash
-python3 comandos.py
-```
+Tomá `comandos.py` y extendelo.
 
-Conectate con dos o tres clientes y probá `QUIEN` y `CONTADOR`.
-
-1. ¿Dónde vive el estado compartido? ¿Por qué no puede vivir en el handler?
-2. `comandos.py` usa un `threading.Lock`. ¿Qué race condition previene? Relacionalo con la clase 11.
-3. Sacá el lock y escribí un cliente que abra y cierre 200 conexiones rápido. ¿Se corrompe el contador? (Puede que no: explicá por qué eso no significa que el código sea correcto.)
-4. ¿Qué operación del código sería la más propensa a romperse sin lock: incrementar el contador o modificar el set?
+1. Agregá `NICK <nombre>` que guarde un apodo por cliente. ¿Dónde vive ese dato: en el handler o en el servidor? Justificá.
+2. Agregá `BROADCAST <texto>` que le mande el mensaje a todos los conectados. Vas a necesitar guardar los sockets, no solo las direcciones.
+3. ¿Qué pasa si un cliente se desconecta justo mientras otro le está escribiendo? Manejalo.
+4. Agregá un timeout: desconectar a quien no mande nada en 30 segundos. Pista: `StreamRequestHandler` tiene un atributo `timeout`.
+5. Con `ForkingTCPServer`, ¿funcionaría el `BROADCAST`? ¿Por qué?
 
 ---
 
-## Ejercicio 6: El límite que socketserver no resuelve
+## Ejercicio 5: El límite
 
-Este ejercicio prepara la clase 17.
+Prepara la clase 17.
 
-1. Levantá `eco_tcp.py` y abrí 200 conexiones simultáneas con un script.
-2. Contá los threads: `ls /proc/$(pgrep -f eco_tcp)/task | wc -l`. ¿Cuántos hay?
-3. Subí a 1000. ¿Qué pasa con la memoria del proceso? Mirá con `ps -o rss= -p $(pgrep -f eco_tcp)`.
-4. ¿Es `socketserver` una solución al problema C10K de la clase 14? Justificá.
-5. ¿Qué habría que cambiar del modelo para atender 10.000 conexiones? (Esa es la clase 17.)
+1. Levantá `comandos.py` y abrí 200 conexiones simultáneas.
+2. Contá los threads: `ls /proc/$(pgrep -f comandos)/task | wc -l`.
+3. Mirá la memoria: `ps -o rss= -p $(pgrep -f comandos)`.
+4. Subí a 1000 conexiones. ¿Qué pasa?
+5. ¿Resuelve `socketserver` el problema C10K de la clase 14? Justificá con tus números.
 
 ---
 
 ## Verificación del ejercicio obligatorio
 
-### Ejercicio 3: Los mixins
+### Ejercicio 2: Los mixins
 
 - [ ] Identificaste qué método sobrescribe cada mixin
 - [ ] Explicaste dónde cosecha los hijos `ForkingMixIn`
-- [ ] Mostraste los dos MRO y la diferencia entre ellos
+- [ ] Mostraste los dos MRO y qué clase provee `process_request` en cada uno
 - [ ] Comprobaste que el orden invertido no da error pero no concurre
-- [ ] Contaste PIDs con forking y threads con threading
-- [ ] Explicaste por qué el estado compartido funciona con threads y no con procesos
+- [ ] Mediste la diferencia entre secuencial y concurrente con clientes lentos
+- [ ] Explicaste por qué el estado compartido falla con forking
+- [ ] Implementaste la versión con `multiprocessing.Value`
 - [ ] Probaste el efecto de `daemon_threads`
 
 ---

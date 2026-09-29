@@ -325,6 +325,20 @@ curl -X POST localhost:8000/tareas -H 'Content-Type: application/json' \
 
 El `loc` dice exactamente dónde está el problema: en el cuerpo, campo `prioridad`. Escribir esa validación a mano —y devolver errores así de precisos— serían decenas de líneas por endpoint.
 
+> **Si estás en Windows con PowerShell**, los `curl` de esta clase no van a funcionar: ahí `curl` es un alias de `Invoke-WebRequest`, que no entiende `-X`, `-H` ni `-d`. Tenés tres salidas:
+>
+> ```powershell
+> # 1. Usar el curl de verdad, con el .exe explícito
+> curl.exe -X POST localhost:8000/tareas -H "Content-Type: application/json" -d '{\"tipo\":\"x\",\"prioridad\":99}'
+>
+> # 2. La sintaxis nativa de PowerShell
+> Invoke-RestMethod -Uri http://localhost:8000/tareas -Method Post `
+>   -ContentType 'application/json' `
+>   -Body '{"tipo":"descargar","prioridad":3}'
+> ```
+>
+> 3. O directamente usar `/docs`, que tiene un botón "Try it out" y evita el problema. Para explorar una API es lo más cómodo, en cualquier sistema.
+
 ### Errores propios
 
 ```python

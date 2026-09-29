@@ -10,6 +10,8 @@ source venv/bin/activate
 pip install fastapi uvicorn httpx
 ```
 
+> **Windows / PowerShell:** los comandos `curl` de esta guía asumen Linux o macOS. En PowerShell, `curl` es un alias de `Invoke-WebRequest` y no acepta `-X`, `-H` ni `-d`. Usá `curl.exe` en su lugar (escapando las comillas del JSON con `\"`), o `Invoke-RestMethod`, o directamente la interfaz de `/docs`. Hay ejemplos en el apunte.
+
 ---
 
 ## Ejercicio 1: El protocolo a mano

@@ -462,20 +462,47 @@ Y tiene una consecuencia de diseño importante para el TP2: **con varios workers
 Los endpoints se pueden escribir de dos formas:
 
 ```python
-@app.get('/a')
-def sincronico():
-    ...
+#!/usr/bin/env python3
+import asyncio
+import time
 
-@app.get('/b')
-async def asincronico():
-    ...
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get('/async-bien')
+async def async_bien():
+    await asyncio.sleep(1)            # cede el control
+    return {'ok': True}
+
+@app.get('/async-mal')
+async def async_mal():
+    time.sleep(1)                     # NO cede: bloquea el event loop
+    return {'ok': True}
+
+@app.get('/sync')
+def sincronico():
+    time.sleep(1)                     # def común: va al threadpool
+    return {'ok': True}
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
 
 La clase pasada construimos el mecanismo que hay detrás del `async def`, así que esto ya no es magia: uvicorn corre un event loop, y cada endpoint `async` es una corrutina que el loop intercala con las demás.
 
-Pero hay un detalle que **no** es obvio, y conviene medirlo.
+Pero hay un detalle que **no** es obvio, y conviene medirlo. Levantá ese archivo y mandale tres pedidos simultáneos a cada ruta:
 
-Levanté tres endpoints que tardan un segundo cada uno, y les mandé tres pedidos simultáneos:
+```bash
+python3 tres_estilos.py &
+for r in async-bien async-mal sync; do
+  echo -n "  /$r  "
+  ( time (for i in 1 2 3; do curl -s localhost:8000/$r & done; wait) ) 2>&1 | grep real
+done
+```
+
+Los números que da (es lo que mide `medir.py`):
 
 | Endpoint | Cómo está escrito | 3 pedidos |
 |----------|-------------------|-----------|

@@ -8,7 +8,7 @@ Eso es un protocolo de aplicación, y hoy vemos el que sostiene la web.
 
 HTTP ya lo tocaron en la clase 12, aunque quizás no lo recuerden así: cuando escribieron a mano `GET / HTTP/1.1` con `nc` y un servidor real les contestó. Esa demostración —que HTTP es texto plano que se puede tipear— es el punto de partida de hoy.
 
-La clase tiene dos mitades. En la primera **miramos el protocolo de cerca**: qué viaja, cómo se estructura, por qué está diseñado así. En la segunda **construimos una API** con FastAPI, que es lo que van a usar en el TP2.
+La clase tiene dos mitades. En la primera **miramos el protocolo de cerca**: qué viaja, cómo se estructura, por qué está diseñado así. En la segunda **construimos una API** con FastAPI, que es lo que van a usar en el TP2. (*API*, por *Application Programming Interface*, es el conjunto de operaciones que un programa expone para que otros programas las usen. Una API HTTP es eso mismo publicado por la red: en vez de llamar a una función, hacés un pedido.)
 
 En el medio hay una bisagra que conviene anticipar: vamos a ver `http.server`, el servidor HTTP de la biblioteca estándar, que resulta ser `socketserver` de la clase 16 con un handler que entiende HTTP. Nada nuevo bajo el sol — solo capas apiladas.
 
@@ -227,19 +227,40 @@ app = FastAPI()
 @app.get('/')
 def raiz():
     return {'mensaje': 'hola'}
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
+
+Guardalo como `mi_api.py` y corrélo:
+
+```bash
+python3 mi_api.py
+```
+
+Hay una segunda forma, que es la que vas a ver en la documentación:
 
 ```bash
 uvicorn mi_api:app --reload
 ```
 
-Tres líneas y tenés un servidor HTTP que devuelve JSON. Comparado con el `http.server` de arriba: no hay `send_response`, ni `Content-Type`, ni `json.dumps`, ni `Content-Length`. El framework lo deduce del valor que devolvés.
+Las dos hacen lo mismo. La diferencia es que `--reload` reinicia el servidor cada vez que guardás el archivo, lo cual es cómodo mientras desarrollás. Para que funcione, uvicorn necesita **el nombre del módulo como string** (`'mi_api:app'`), no el objeto: tiene que poder reimportarlo.
+
+> **Todos los ejemplos que siguen son archivos completos**: copialos, guardalos y corrélos con `python3 archivo.py`. Cada uno arranca en el puerto 8000.
+
+Tres líneas de lógica y tenés un servidor HTTP que devuelve JSON. Comparado con el `http.server` de arriba: no hay `send_response`, ni `Content-Type`, ni `json.dumps`, ni `Content-Length`. El framework lo deduce del valor que devolvés.
 
 El decorador `@app.get('/')` hace dos cosas: registra la función para esa ruta y para ese método. Un `@app.post('/tareas')` registraría otra.
 
 ### Parámetros: en la ruta y en la query
 
 ```python
+#!/usr/bin/env python3
+from fastapi import FastAPI
+
+app = FastAPI()
+
 @app.get('/tareas/{tarea_id}')
 def obtener(tarea_id: int):              # el tipo NO es decorativo
     return {'id': tarea_id}
@@ -247,6 +268,10 @@ def obtener(tarea_id: int):              # el tipo NO es decorativo
 @app.get('/tareas')
 def listar(estado: str = 'todos', limite: int = 10):
     return {'estado': estado, 'limite': limite}
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
 
 Lo que llama la atención es el `: int`. En Python normal una anotación de tipo es documentación que nadie verifica. **Acá FastAPI la usa de verdad**: convierte el string de la URL a entero, y si no puede, rechaza el pedido con un 422 antes de ejecutar tu función.
@@ -267,7 +292,11 @@ Los parámetros que no están en la ruta se leen de la query string: `/tareas?es
 Para recibir JSON se declara un modelo:
 
 ```python
+#!/usr/bin/env python3
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
+
+app = FastAPI()
 
 class TareaNueva(BaseModel):
     tipo: str = Field(min_length=1)
@@ -276,6 +305,10 @@ class TareaNueva(BaseModel):
 @app.post('/tareas', status_code=201)
 def crear(tarea: TareaNueva):            # FastAPI ve el tipo y arma el objeto
     return {'recibido': tarea.tipo, 'prioridad': tarea.prioridad}
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
 
 FastAPI lee el cuerpo, lo parsea como JSON, lo valida contra el modelo, y te entrega un objeto ya construido. Si algo no cumple, responde 422 con el detalle:
@@ -295,13 +328,21 @@ El `loc` dice exactamente dónde está el problema: en el cuerpo, campo `priorid
 ### Errores propios
 
 ```python
-from fastapi import HTTPException
+#!/usr/bin/env python3
+from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+tareas = {1: {'id': 1, 'tipo': 'esperar'}}      # datos de ejemplo
 
 @app.get('/tareas/{tarea_id}')
 def obtener(tarea_id: int):
     if tarea_id not in tareas:
         raise HTTPException(status_code=404, detail='No existe esa tarea')
     return tareas[tarea_id]
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
 
 `HTTPException` se lanza como cualquier excepción y FastAPI la convierte en la respuesta correspondiente. Es más limpio que devolver diccionarios de error: podés lanzarla desde cualquier profundidad de llamadas.
@@ -329,7 +370,7 @@ Antes de hablar de `async def`, conviene ubicar las piezas. Cuando corrés `uvic
 ```
    uvicorn            el servidor: socket, event loop, protocolo HTTP
       |
-   ASGI               la interfaz entre ambos (un contrato, no código tuyo)
+   ASGI               el contrato entre ambos (una especificación, no código tuyo)
       |
    FastAPI            tu aplicación: rutas, validación, respuestas
 ```
@@ -338,13 +379,14 @@ Antes de hablar de `async def`, conviene ubicar las piezas. Cuando corrés `uvic
 
 **FastAPI no tiene event loop propio.** Es una aplicación ASGI: un objeto que uvicorn invoca cuando llega un pedido. FastAPI decide *qué* responder; uvicorn se ocupa de *cómo* moverlo por la red.
 
-**ASGI es el contrato entre los dos.** Define cómo un servidor le pasa un pedido a una aplicación asíncrona. Gracias a ese estándar, podés cambiar uvicorn por hypercorn o daphne sin tocar tu código, y correr FastAPI, Starlette o Django sobre el mismo servidor. Es el sucesor asíncrono de WSGI, que era el estándar sincrónico de Flask y Django clásico.
+**ASGI es el contrato entre los dos.** Las siglas son *Asynchronous Server Gateway Interface*: interfaz asíncrona de pasarela para servidores. No es una biblioteca que instalás, sino una especificación que define cómo un servidor le pasa un pedido a una aplicación asíncrona. Gracias a ese estándar, podés cambiar uvicorn por hypercorn o daphne sin tocar tu código, y correr FastAPI, Starlette o Django sobre el mismo servidor. El nombre viene de **WSGI** (*Web Server Gateway Interface*), el estándar equivalente de 2003 para aplicaciones sincrónicas — lo que permitió que Flask y Django corrieran sobre gunicorn, mod_wsgi o waitress indistintamente. La *A* de adelante marca la diferencia: ASGI agrega asincronía, y con eso la posibilidad de WebSockets y conexiones de larga duración, que en WSGI no se podían expresar.
 
 ### Verlo con los propios ojos
 
 No hace falta creerlo. Un endpoint puede preguntar en qué contexto está corriendo:
 
 ```python
+#!/usr/bin/env python3
 import asyncio, os, threading
 from fastapi import FastAPI
 
@@ -368,6 +410,10 @@ def quien_soy_sync():
     except RuntimeError:
         estado = 'NO hay loop corriendo acá'
     return {'thread': threading.current_thread().name, 'loop': estado}
+
+if __name__ == '__main__':
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
 
 La salida del endpoint `async`, pedida dos veces:

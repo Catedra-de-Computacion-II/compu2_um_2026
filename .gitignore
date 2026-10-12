@@ -30,8 +30,9 @@ clase_24_celery_2/
 clase_25_compose_avanzado/
 
 # === Trabajos prácticos (liberar cuando corresponda) ===
-trabajos_practicos/
+trabajos_practicos/*
 !trabajos_practicos/TP1_monitoreo/
+!trabajos_practicos/TP2_tareas/
 
 # === Material interno docente ===
 _old_reference/

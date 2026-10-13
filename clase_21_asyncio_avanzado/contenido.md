@@ -77,6 +77,18 @@ Un worker con `while True` nunca termina solo. Hay dos formas de pararlo.
 
 **Con un centinela**: poner en la cola un valor especial que signifique "terminá".
 
+Antes del código, una palabra sobre `object()`, que aparece ahí y puede resultar extraño. `object()` crea una instancia del tipo base de Python: un objeto vacío, de 16 bytes, que no hace absolutamente nada. Su única propiedad útil es que **es único**, y por eso se compara con `is` (identidad) en vez de `==` (igualdad).
+
+¿Por qué no usar un valor común como `None` o la cadena `'FIN'`? Porque cualquiera de esos podría ser un dato legítimo:
+
+```python
+CENTINELA = 'FIN'
+tareas = ['descargar', 'FIN', 'hashear']    # un usuario encoló la cadena 'FIN'
+# el worker se apaga en el segundo item, dejando trabajo sin hacer
+```
+
+Con `object()` eso es imposible: la única referencia a ese objeto la tiene tu código, así que nada que venga de afuera puede ser idéntico a él. Es el modismo estándar de Python para "valor único que no se puede confundir con un dato". La biblioteca estándar usa la misma idea en varios lugares, aunque con una clase propia en vez de `object()` directo, para que el `repr` sea legible al depurar: `dataclasses.MISSING` es una instancia de `_MISSING_TYPE`, e `inspect.Parameter.empty` de `_empty`. Si el centinela es interno a tu código, `object()` alcanza.
+
 ```python
 CENTINELA = object()
 

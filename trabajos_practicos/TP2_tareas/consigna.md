@@ -11,7 +11,7 @@
 | **Enunciado** | Clase 21 (13/10/2026) |
 | **Entrega** | Clase 24 (03/11/2026), al final de la clase |
 | **Modalidad** | Individual |
-| **Plataforma** | Linux (en Docker). Ver la nota de plataformas en 4.1 |
+| **Plataforma** | Cualquiera: corre en Docker (Linux, macOS o Windows). Ver 4.1 |
 | **Lenguaje** | Python 3.11+ |
 | **Entrega** | Repositorio público en GitHub |
 

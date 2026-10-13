@@ -11,7 +11,7 @@
 | **Enunciado** | Clase 21 (13/10/2026) |
 | **Entrega** | Clase 24 (03/11/2026), al final de la clase |
 | **Modalidad** | Individual |
-| **Plataforma** | Linux (en Docker) |
+| **Plataforma** | Linux (en Docker). Ver la nota de plataformas en 4.1 |
 | **Lenguaje** | Python 3.11+ |
 | **Entrega** | Repositorio público en GitHub |
 
@@ -124,6 +124,31 @@ El estado vive en memoria, pero:
   tareas nuevas, esperar (con límite) a las que están en curso, y volcar el
   estado a `estado_<timestamp>.json`.
 - Al arrancar, si existe un volcado previo, reportarlo por log.
+
+### 4.1 Nota sobre plataformas
+
+A diferencia del TP1 —que leía `/proc` y necesitaba una versión aparte para
+macOS— este TP usa herramientas multiplataforma y **no requiere una consigna
+distinta**. Además corre en Docker, o sea sobre Linux en cualquier sistema.
+
+Si desarrollás fuera del contenedor, hay dos diferencias que conviene conocer:
+
+**`ProcessPoolExecutor` arranca distinto según el sistema.** En Linux usa `fork`;
+en macOS y Windows usa `spawn`, que **re-importa el módulo** en cada proceso
+hijo. Por eso el arranque tiene que estar protegido:
+
+```python
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
+```
+
+Sin esa guarda, en macOS el programa entra en un bucle de reimportación al crear
+el pool. En Linux funciona igual, así que es un error que solo aparece en una de
+las dos plataformas.
+
+**`loop.add_signal_handler()` es solo para Unix.** Funciona en Linux y macOS,
+pero no en Windows. Si trabajás en Windows sin Docker, usá `signal.signal()` con
+un flag que el loop consulte, o directamente desarrollá dentro del contenedor.
 
 ### 5. Docker
 

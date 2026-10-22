@@ -1,0 +1,77 @@
+# Clase 24: todo el sistema con un comando.
+#
+#   docker compose up -d --build        levantar
+#   docker compose ps                   ver que corre
+#   docker compose logs -f worker       mirar un servicio
+#   docker compose up -d --scale worker=3    tres workers
+#   docker compose down                 bajar todo
+#
+# Cuatro servicios: el broker, la API, los workers y el dashboard.
+# Ninguno sabe en que maquina estan los otros: se encuentran por NOMBRE.
+
+services:
+
+  # ---------------------------------------------------------------------
+  # El broker. Mismo que la clase 23, pero ahora sin publicar el puerto
+  # al host: solo lo usan los otros servicios, desde la red interna.
+  # ---------------------------------------------------------------------
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  # ---------------------------------------------------------------------
+  # La API. Es el unico servicio con el puerto publicado: es la puerta
+  # de entrada del sistema.
+  # ---------------------------------------------------------------------
+  api:
+    build: .
+    # 'api:api' = modulo api.py, objeto FastAPI llamado 'api'.
+    # (En ese archivo 'app' es el objeto de Celery, no el de FastAPI.)
+    command: uvicorn api:api --host 0.0.0.0 --port 8000
+    ports:
+      # Si el 8000 ya esta ocupado en tu maquina:
+      #   PUERTO_API=8010 docker compose up -d
+      - "${PUERTO_API:-8000}:8000"
+    environment:
+      # 'redis' es el nombre del servicio de arriba. Docker lo resuelve
+      # por DNS dentro de la red del proyecto. Y el puerto es el 6379,
+      # el de adentro del contenedor: el mapeo al host no participa.
+      BROKER_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------
+  # Los workers. Mismo build que la API, otro comando: el codigo es el
+  # mismo, el rol es distinto.
+  #
+  # Sin 'ports' y sin 'container_name': por eso se puede escalar con
+  # --scale worker=3 (tres contenedores no pueden compartir ni un puerto
+  # ni un nombre).
+  # ---------------------------------------------------------------------
+  worker:
+    build: .
+    command: celery -A tareas worker --loglevel=info --concurrency=2
+    environment:
+      BROKER_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------
+  # Flower: el dashboard. Se conecta al mismo broker y mira todo.
+  # ---------------------------------------------------------------------
+  flower:
+    build: .
+    command: celery -A tareas flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      BROKER_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy

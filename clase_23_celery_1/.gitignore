@@ -1,0 +1,4 @@
+# Lo que generan los scripts al correr
+ultimos_ids.txt
+*.log
+__pycache__/

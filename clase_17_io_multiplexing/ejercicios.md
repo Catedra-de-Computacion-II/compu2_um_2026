@@ -1,4 +1,4 @@
-# Clase 16: I/O Multiplexing - Ejercicios Prácticos
+# Clase 17: I/O Multiplexing - Ejercicios Prácticos
 
 Los archivos `servidor_select.py`, `servidor_selectors.py`, `chat.py` y `comparar.py` acompañan la clase. Empezá corriéndolos para ver el comportamiento esperado.
 
@@ -290,4 +290,4 @@ En la clase 6 vimos el patrón self-pipe para señales. Integralo con `selectors
 
 ---
 
-*Computación II - 2026 - Clase 16*
+*Computación II - 2026 - Clase 17*

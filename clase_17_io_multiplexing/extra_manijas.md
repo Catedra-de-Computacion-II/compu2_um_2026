@@ -1,4 +1,4 @@
-# Clase 16: I/O Multiplexing - Extra Manijas
+# Clase 17: I/O Multiplexing - Extra Manijas
 
 Material opcional para profundizar.
 
@@ -188,4 +188,4 @@ Asyncio trae esto incorporado con `loop.set_debug(True)`, que avisa de las corru
 
 ---
 
-*Computación II - 2026 - Clase 16*
+*Computación II - 2026 - Clase 17*

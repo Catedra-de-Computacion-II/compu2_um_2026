@@ -90,8 +90,8 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 | 20 | 06/10 | Asyncio en red |
 | 21 | 13/10 | Asyncio avanzado |
 | 22 | 20/10 | concurrent.futures |
-| 23 | 27/10 | Celery I |
-| 24 | 03/11 | Celery II — **Entrega TP2** |
+| 23 | 27/10 | Celery I: tareas distribuidas |
+| 24 | 03/11 | Celery II: orquestación con Compose — **Entrega TP2** |
 | — | 09-13/11 | *(recuperaciones y firma de regularidades)* |
 
 > El cronograma del segundo cuatrimestre está ajustado al calendario académico de

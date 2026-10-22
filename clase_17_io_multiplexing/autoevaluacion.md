@@ -1,4 +1,4 @@
-# Clase 16: I/O Multiplexing - Autoevaluación
+# Clase 17: I/O Multiplexing - Autoevaluación
 
 > Completá esta autoevaluación **después** de leer el contenido y hacer los ejercicios.
 > No mires las respuestas antes de intentarlo.
@@ -381,7 +381,7 @@ d) `epoll` deja de funcionar
 
 | Puntaje | Diagnóstico |
 |---------|-------------|
-| 38-42 correctas | Excelente. Avanzá a la clase 18 (HTTP + FastAPI) |
+| 38-42 correctas | Excelente. Avanzá a la clase 18 (De yield a asyncio) |
 | 31-37 | Buen nivel. Repasá los temas donde fallaste |
 | 21-30 | Nivel intermedio. Rehacé el ejercicio 3 (comparar) y el 7 |
 | < 21 | Repasá el contenido completo. Consultá con el docente antes de la próxima clase |
@@ -390,4 +390,4 @@ d) `epoll` deja de funcionar
 
 ---
 
-*Computación II - 2026 - Clase 16*
+*Computación II - 2026 - Clase 17*

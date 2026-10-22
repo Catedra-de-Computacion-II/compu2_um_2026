@@ -1,0 +1,22 @@
+# Clase 23: el broker.
+#
+# Por ahora solo Redis: el worker lo lanzamos a mano para verlo trabajar.
+# La semana que viene (clase 24) el worker y la API tambien van a vivir
+# aca adentro.
+#
+#   docker compose up -d                     # levantar
+#   docker compose exec redis redis-cli ping # probar -> PONG
+#   docker compose down                      # bajar
+#
+# Mapeamos al 6399 del host para no chocar con un Redis que ya tengas
+# corriendo en el 6379. Adentro del contenedor sigue siendo el 6379.
+
+services:
+  redis:
+    image: redis:7
+    container_name: clase23_redis
+    ports:
+      - "6399:6379"
+    # Para espiar la cola desde afuera:
+    #   docker compose exec redis redis-cli LLEN celery
+    #   docker compose exec redis redis-cli LINDEX celery 0

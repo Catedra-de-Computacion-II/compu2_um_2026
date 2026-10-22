@@ -233,7 +233,7 @@ Ese ejemplo resuelve en diez líneas lo que la clase entera construyó a mano, i
 
 ¿Por qué entonces hacerlo a mano? Porque cuando `socketserver` (o Flask, o gRPC) se comporta raro, la única forma de entender qué pasa es saber qué hay abajo. Los bugs de red se diagnostican en la capa cruda aunque el código de producción viva varias capas más arriba.
 
-En orden de abstracción creciente: `socket` → `socketserver` → `asyncio` (clase 18+) → frameworks como FastAPI (clase 17).
+En orden de abstracción creciente: `socket` → `socketserver` (clase 16) → `asyncio` (clases 18 a 21) → frameworks como FastAPI (clase 19).
 
 ---
 

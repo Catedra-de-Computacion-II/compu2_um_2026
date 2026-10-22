@@ -1,4 +1,4 @@
-# Clase 16: I/O Multiplexing
+# Clase 17: I/O Multiplexing
 
 ## Introducción: esperar por muchos a la vez
 
@@ -578,9 +578,9 @@ En la práctica, hoy nadie escribe un servidor nuevo con `selectors` a mano: se 
 
 ## Preparación para la próxima clase
 
-En la **clase 18 (HTTP + FastAPI)** subimos de capa. Hasta acá programamos el transporte; ahora vamos a ver el protocolo de aplicación que corre encima y que sostiene toda la web. Vamos a leer HTTP a mano —como hicimos con `nc` en la clase 12— y después a construir una API con FastAPI.
+En la **clase 18 (De yield a asyncio)** seguimos el hilo que acabamos de abrir. El bucle de `selectors` que escribimos hoy *es* un event loop; lo que falta es la otra mitad: las corrutinas, las funciones que pueden pausarse y retomar. Vamos a construirlas desde `yield` hasta llegar a `async`/`await`, y recién ahí asyncio va a parecer inevitable en lugar de mágico.
 
-Es también la clase donde se entrega el **enunciado del TP2**.
+Después, en la **clase 19 (HTTP + FastAPI)**, subimos de capa: el protocolo de aplicación que corre encima del transporte que venimos programando. Es también la clase donde se entrega el **enunciado del TP2**.
 
 Para llegar preparado:
 
@@ -599,4 +599,4 @@ Para llegar preparado:
 
 ---
 
-*Computación II - 2026 - Clase 16*
+*Computación II - 2026 - Clase 17*

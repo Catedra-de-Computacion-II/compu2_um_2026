@@ -68,7 +68,7 @@ Vas a encontrar dos modelos de capas y conviene saber cuál es cuál.
 
 En la práctica se usan mezclados: la gente dice "un problema de capa 3" (vocabulario OSI) hablando de una red TCP/IP. La numeración OSI sobrevivió como jerga aunque el modelo no se implemente.
 
-Un detalle que confunde: OSI separa presentación y sesión, pero en TCP/IP eso es responsabilidad de la aplicación. Cuando en la clase 17 veamos HTTP, vamos a estar programando algo que en OSI abarcaría tres capas.
+Un detalle que confunde: OSI separa presentación y sesión, pero en TCP/IP eso es responsabilidad de la aplicación. Cuando en la clase 19 veamos HTTP, vamos a estar programando algo que en OSI abarcaría tres capas.
 
 ---
 

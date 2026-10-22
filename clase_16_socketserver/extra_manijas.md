@@ -155,7 +155,7 @@ class MiHandler(http.server.BaseHTTPRequestHandler):
 
 estás completando un template method dentro de otro template method: `socketserver` llama a `handle()`, y el `handle()` de HTTP llama a tu `do_GET()`.
 
-Es exactamente el patrón que vas a ver en la clase 17 con FastAPI, aunque la sintaxis sea otra.
+Es exactamente el patrón que vas a ver en la clase 19 con FastAPI, aunque la sintaxis sea otra.
 
 Y para servir un directorio, `python3 -m http.server` es literalmente un `ThreadingHTTPServer` con `SimpleHTTPRequestHandler`.
 

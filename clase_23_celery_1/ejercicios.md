@@ -4,16 +4,22 @@ Los archivos `tareas.py`, `encolar.py`, `consultar.py` y `docker-compose.yml` ac
 
 ## Antes de empezar
 
+> **Si es la primera vez, leé `anexo_puesta_en_marcha.md`.** Está la instalación paso a paso y los errores con los que te vas a cruzar, ordenados por el mensaje que ves. En particular, `pip install` a secas falla en Debian y Ubuntu recientes: hace falta un entorno virtual.
+
+El resumen, una vez que ya está todo instalado:
+
 ```bash
-pip install celery redis
+# Terminal 1: el broker
 docker compose up -d
 docker compose exec redis redis-cli ping      # PONG
-```
 
-Y en una terminal aparte, cuando haga falta:
-
-```bash
+# Terminal 2: el worker (queda ocupada mostrando logs)
+source venv/bin/activate
 celery -A tareas worker --loglevel=info --concurrency=2
+
+# Terminal 3: vos
+source venv/bin/activate
+python3 encolar.py
 ```
 
 ---

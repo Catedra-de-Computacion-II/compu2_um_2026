@@ -1,4 +1,4 @@
-https://gitlab.com/d1cor/UM_C2/-/blob/master/FINAL.md?ref_type=heads
+
 ## Requisitos examen final
 
 Para poder rendir el examen final es requisito haber regularizado la materia a fin del semestre.

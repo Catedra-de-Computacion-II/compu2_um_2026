@@ -14,7 +14,7 @@ Esa frontera tiene tres consecuencias que no se arreglan con más concurrencia:
 
 Celery cruza esa frontera. La idea es la misma de siempre —encolar trabajo, recibir un recibo, consultar después el resultado— pero la cola deja de estar en memoria y pasa a estar **en un servidor aparte**. Y ahí cambia todo.
 
-> **Nota:** los archivos `tareas.py`, `encolar.py`, `consultar.py` y `docker-compose.yml` acompañan la clase.
+> **Nota:** los archivos `tareas.py`, `encolar.py`, `consultar.py` y `docker-compose.yml` acompañan la clase. Para dejar el entorno andando —Docker, el entorno virtual, las tres terminales y los errores habituales— está `anexo_puesta_en_marcha.md`.
 
 ---
 
@@ -354,12 +354,16 @@ Celery se entiende mejor cuando se ve que son procesos independientes. Para trab
 docker compose up -d
 
 # Terminal 2: el worker (queda ocupada, mostrando logs)
+source venv/bin/activate
 celery -A tareas worker --loglevel=info --concurrency=2
 
 # Terminal 3: tu programa
+source venv/bin/activate
 python3 encolar.py
 python3 consultar.py <id>
 ```
+
+El `source venv/bin/activate` va en **cada** terminal: el entorno virtual se activa por terminal, no por máquina. Olvidarlo es la causa del `ModuleNotFoundError: No module named 'celery'` que vas a ver al menos una vez.
 
 Si en la terminal 3 no pasa nada y la tarea queda en `PENDING` para siempre, el orden de revisión es: ¿está el broker arriba?, ¿está el worker conectado al *mismo* broker?, ¿aparece la tarea en la lista `[tasks]` del worker?
 

@@ -4,12 +4,24 @@ El directorio `proyecto/` tiene el sistema completo: `docker-compose.yml`, `Dock
 
 ## Antes de empezar
 
+> Si algo no arranca, el anexo de la clase 23 (`clase_23_celery_1/anexo_puesta_en_marcha.md`) tiene los errores habituales ordenados por el mensaje que ves. Vale igual acá, y la última sección es específica de esta clase.
+
 ```bash
 cd proyecto
 docker compose up -d --build
 docker compose ps
 curl localhost:8000/salud
 ```
+
+Hoy **no hace falta entorno virtual**: las dependencias se instalan dentro de la imagen, vía `requirements.txt`. La primera vez el `--build` tarda unos minutos porque baja Python y los paquetes; después queda cacheado.
+
+Tiene que responder algo así:
+
+```json
+{"api":"ok","workers":["celery@c4263a10f1af"]}
+```
+
+Si `workers` viene vacío, la API está bien pero ningún worker se registró: mirá `docker compose logs worker`.
 
 Si el 8000 está ocupado en tu máquina:
 

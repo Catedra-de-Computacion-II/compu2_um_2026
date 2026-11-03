@@ -137,6 +137,29 @@ source venv/bin/activate          # activar (cada vez que abrís una terminal)
 pip install celery redis          # instalar, ya sin error
 ```
 
+### Por qué son dos paquetes y no uno
+
+`celery` es la biblioteca. `redis` es el **cliente** de Redis: el código que habla el protocolo del broker. Celery no incluye el cliente de ningún broker, porque no sabe cuál vas a usar — con RabbitMQ harían falta otros.
+
+Hay una forma más declarativa de pedir lo mismo:
+
+```bash
+pip install "celery[redis]"        # equivalente a: celery redis
+pip install "celery[rabbitmq]"     # lo que haría falta para RabbitMQ
+```
+
+Los corchetes son *extras*: grupos de dependencias opcionales que el autor del paquete definió con un nombre. `celery[redis]` significa "celery, más lo que haga falta para usar Redis". Las comillas son necesarias porque bash interpreta los corchetes como patrón de archivos.
+
+Verificado con `celery[redis]`, instala exactamente:
+
+```
+celery 5.6.3 / redis 8.1.0
+```
+
+Que son las versiones que fija el `requirements.txt` de la clase 24.
+
+Lo que `pip` **no** instala es el servidor Redis. Eso es un programa aparte, no un paquete de Python, y es lo que levantamos con Docker en el paso 2. Es la causa de una confusión habitual: el `pip install` sale bien, y después nada funciona porque falta el broker.
+
 Cuando está activado, el prompt cambia:
 
 ```
@@ -300,6 +323,14 @@ El caso más frecuente, y tiene tres causas posibles. Revisalas en este orden:
 
 Recordá también lo que vimos en clase: `PENDING` significa "el backend no sabe nada de este id", no "está en la cola". Un id mal copiado da `PENDING` igual que uno encolado.
 
+Para distinguir los casos, mirá el broker directamente (ver **Inspeccionar** más abajo):
+
+```bash
+docker exec clase23_redis redis-cli LLEN celery
+```
+
+Si da un número mayor a 0, la tarea está encolada y el problema es del lado del worker. Si da 0 y tampoco hay resultado, nunca se encoló: el problema está en el programa que encola.
+
 ### `Error: Unable to load celery application.`
 
 El worker no encontró `tareas.py`. El `-A tareas` es un **import de Python**, así que busca el archivo en el directorio desde donde lanzaste el comando.
@@ -332,6 +363,78 @@ python3 -c "import tareas"
 ```
 
 Si eso falla, el worker no tiene chance.
+
+---
+
+## Inspeccionar: ver qué está pasando de verdad
+
+Cuando el diagnóstico por síntoma no alcanza, se mira el broker directo. La explicación de qué es cada cosa está en el contenido de la clase, sección **Mirar adentro**; acá va la chuleta.
+
+### El broker (las tareas que esperan)
+
+```bash
+docker exec clase23_redis redis-cli LLEN celery           # cuántas en cola
+docker exec clase23_redis redis-cli LRANGE celery 0 -1    # verlas crudas
+docker exec clase23_redis redis-cli DEL celery            # vaciar la cola
+```
+
+Ese `DEL` sirve cuando quedaron tareas viejas de un experimento anterior y ensucian la prueba. Borra la cola entera, así que no lo uses con algo que te importe.
+
+### El backend (los resultados)
+
+```bash
+docker exec clase23_redis redis-cli KEYS 'celery-task-meta-*'
+docker exec clase23_redis redis-cli GET celery-task-meta-<id>
+docker exec clase23_redis redis-cli TTL celery-task-meta-<id>
+```
+
+### Los workers que están vivos
+
+```bash
+source venv/bin/activate
+celery -A tareas inspect ping        # quién responde
+celery -A tareas inspect active      # qué están ejecutando ahora
+celery -A tareas inspect registered  # qué tareas conocen
+```
+
+Con un worker arriba, se ve así:
+
+```
+->  celery@lenovo: OK
+    * tareas.sumar
+
+1 node online.
+```
+
+Si **no** hay ningún worker, el comando espera unos segundos y falla:
+
+```
+Error: No nodes replied within time constraint
+```
+
+Eso no es un problema de configuración: es la respuesta correcta a "no hay nadie". Y es una buena primera prueba cuando la tarea no se ejecuta.
+
+Desde Python el mismo pedido no lanza excepción, devuelve `None`:
+
+```python
+>>> app.control.inspect().ping()
+None
+```
+
+Vale conocer ese `None`: si escribís un endpoint de salud que haga `.ping()`, tenés que manejarlo o te explota al iterarlo. Es lo que hace `api.py` de la clase 24 con `or {}`.
+
+El `inspect registered` es la forma de revisar la tercera causa del PENDING eterno sin tener que leer el banner del worker.
+
+### Empezar de cero
+
+Si te enredaste y querés el estado limpio:
+
+```bash
+docker compose down            # baja el broker y borra su contenido
+docker compose up -d
+```
+
+Como no definimos volumen, al bajar el contenedor se va todo: cola y resultados. Es lo más rápido.
 
 ---
 

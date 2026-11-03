@@ -54,6 +54,8 @@ docker exec clase23_redis redis-cli LLEN celery
 
 La tarea está ahí. Sobrevivió a la muerte de quien la encoló.
 
+Ese comando se lee así: `docker exec clase23_redis` corre algo dentro del contenedor del broker; `redis-cli` es el cliente de Redis; `LLEN celery` pregunta el largo de la lista llamada `celery`, que es la cola. Más abajo, en **Mirar adentro**, está el resto de los comandos para inspeccionar.
+
 > Si te da `0`, tenés un worker corriendo de antes: lo tomó al instante. Bajalo y repetí desde el paso 1 — la gracia del experimento es que no haya nadie para ejecutarla.
 
 **Paso 3.** Ahora —minutos después, si queremos— arrancamos un worker:
@@ -149,6 +151,25 @@ Vale leerlo con calma, porque cada línea es algo que ya vimos:
 
 Esa última lista es la fuente del error más común de la semana que viene. Un worker solo puede ejecutar las tareas que tiene registradas; si encolás una que él no conoce, el mensaje queda en la cola y nadie lo atiende.
 
+#### El `-A`, y por qué el worker tiene que saber de Python
+
+```bash
+celery -A tareas worker --loglevel=info --concurrency=2
+```
+
+`-A` es `--app`, y lo que recibe **no es un archivo: es un módulo de Python**. `-A tareas` significa "importá `tareas`". Es exactamente lo que haría un `import tareas`, con las mismas reglas: busca en el directorio actual, y si no está, falla.
+
+De ahí salen dos cosas que explican casi todos los tropiezos con este comando:
+
+- **El comando depende de dónde estás parado.** Si lo lanzás desde otra carpeta, no encuentra `tareas.py` y aborta con `Error: Unable to load celery application.` No queda en `PENDING`: no arranca.
+- **Nunca se escribe `-A tareas.py`.** El `.py` sobra, igual que en un import.
+
+Y lo importante: ese import es **el mecanismo por el cual el worker aprende las tareas**. Al importar el módulo se ejecutan los `@app.task`, que registran cada función en la app. Por eso la lista `[tasks]` del banner es, literalmente, lo que había decorado en ese archivo. El worker no descubre tareas por la red ni las recibe del broker — las conoce porque importó el mismo código que vos.
+
+Eso cierra una idea que vimos arriba: por la cola viaja el nombre `"tareas.sumar"`, y el worker lo resuelve contra este registro. Si el nombre no está en el registro, el mensaje no tiene a quién ir.
+
+Para proyectos más grandes se apunta a un paquete (`-A proyecto.celery`), y ahí se usa `autodiscover_tasks()` para que importe las tareas de cada módulo. El mecanismo es el mismo: alguien tiene que importar el código.
+
 ### El result backend: el que guarda la respuesta
 
 Es **opcional**, y vale entender por qué. El broker lleva el trabajo *hacia* el worker; el backend trae el resultado *de vuelta*. Si no te interesa el resultado —mandar un mail, escribir un log, invalidar un caché— no hace falta backend, y conviene no tenerlo: guardar resultados que nadie va a leer es trabajo y memoria regalados.
@@ -193,6 +214,118 @@ De ahí salen tres consecuencias prácticas:
 2. **El worker y quien encola tienen que compartir el código de las tareas.** Si el worker corre en otra máquina, esa máquina necesita el mismo `tareas.py`. El broker no lo distribuye.
 
 3. **Se pasan IDs, no objetos.** La regla de oro: `procesar_usuario.delay(usuario.id)`, nunca `procesar_usuario.delay(usuario)`. El worker busca el objeto en la base cuando le toca — y así trabaja con el dato fresco, no con una copia de hace diez minutos.
+
+---
+
+## Mirar adentro: el broker y el backend no son cajas negras
+
+Todo lo anterior se puede *ver*. Y conviene verlo, porque desarma la sensación de magia y porque es la herramienta de diagnóstico cuando algo no anda.
+
+Son dos cosas distintas, que en nuestra configuración viven en el mismo Redis:
+
+- **El broker**: las tareas que esperan. Una lista.
+- **El result backend**: los resultados de las que terminaron. Una clave por tarea.
+
+### La cola es una lista de Redis
+
+```bash
+docker exec clase23_redis redis-cli TYPE celery
+```
+
+```
+list
+```
+
+Eso es todo lo que es. `celery` es el **nombre de la cola por default** (el que aparece en `[queues]` del banner), y Redis la implementa como una lista. De ahí que los comandos para mirarla sean los de listas:
+
+```bash
+docker exec clase23_redis redis-cli LLEN celery          # cuántas esperan
+docker exec clase23_redis redis-cli LRANGE celery 0 -1   # verlas enteras
+```
+
+`LLEN` es *list length*; `LRANGE` con `0 -1` es "del primero al último", porque en Redis el índice `-1` es el final.
+
+El `LRANGE` es el que devuelve el JSON que vimos arriba — no lo inventamos, sale de ahí. Lo que trae de más vale mirarlo:
+
+```json
+{"body": "W1syLCAzXSwge30sIH...",
+ "content-type": "application/json",
+ "headers": {"task": "tareas.sumar", "id": "a7709c13-...",
+             "retries": 0, "argsrepr": "(2, 3)",
+             "origin": "gen241032@lenovo", "eta": null, "expires": null},
+ "properties": {"delivery_mode": 2, "delivery_tag": "0cdbd7d6-...",
+                "delivery_info": {"routing_key": "celery"}}}
+```
+
+El `origin` dice qué proceso lo encoló. El `delivery_tag` es el identificador que el worker usa para confirmar el mensaje — es el ACK del que hablamos con `acks_late`. Y `argsrepr` está ahí solo para que los argumentos se puedan leer en Flower sin decodificar el `body`.
+
+### Los resultados son claves
+
+```bash
+docker exec clase23_redis redis-cli KEYS 'celery-task-meta-*'
+docker exec clase23_redis redis-cli GET celery-task-meta-a7709c13-...
+```
+
+```json
+{"status": "SUCCESS", "result": 5, "traceback": null, "children": [],
+ "date_done": "2026-11-03T15:00:21.518631+00:00",
+ "task_id": "a7709c13-..."}
+```
+
+**Eso es lo que `AsyncResult` lee.** No hay nada más: `r.state` es el campo `status` de este JSON, y `r.result` es `result`. Un `AsyncResult` es un `GET` a `celery-task-meta-<id>`, y por eso puede reconstruirse en otro proceso con solo el id.
+
+### Dos cosas que se ven mejor acá que explicadas
+
+**Por qué `PENDING` es ambiguo.** Encolá una tarea sin ningún worker arriba y preguntá por su clave de resultado:
+
+```bash
+docker exec clase23_redis redis-cli LLEN celery                      # 1
+docker exec clase23_redis redis-cli EXISTS celery-task-meta-<id>     # 0
+```
+
+La tarea existe —está en la lista— pero en el backend **no hay nada**. Y un id inventado da exactamente lo mismo: `0`. Por eso Celery no puede distinguir "en cola" de "no existe": pregunta al backend, y el backend no sabe nada en los dos casos. No es una decisión de diseño discutible, es que la información no está ahí.
+
+**Que los resultados se borran solos.** Después de que la tarea termine:
+
+```bash
+docker exec clase23_redis redis-cli TTL celery-task-meta-<id>
+```
+
+```
+86396
+```
+
+Un TTL (*time to live*) de 86.400 segundos, o sea 24 horas, contadas desde que terminó. Es el default de `result_expires`, y existe porque Redis es memoria: si los resultados no se vencieran, la memoria del broker crecería para siempre. Es la misma razón por la que el result backend es opcional.
+
+La consecuencia práctica: **el id es un recibo con vencimiento**. Si tu sistema necesita el resultado de ayer, guardalo donde corresponda —tu base de datos— y no en el backend de Celery.
+
+### Un comando útil de más
+
+```bash
+docker exec clase23_redis redis-cli DBSIZE    # cuántas claves hay en total
+docker exec clase23_redis redis-cli KEYS '*'  # todas
+```
+
+El `KEYS '*'` muestra también las claves internas que Celery usa para coordinarse:
+
+```
+celery-task-meta-a7709c13-...
+_kombu.binding.celery
+_kombu.binding.celery.pidbox
+_kombu.binding.celeryev
+```
+
+Las `_kombu.*` son de la biblioteca que Celery usa para hablar con el broker. `pidbox` es el canal por el que se le mandan órdenes a los workers (es lo que usa `inspect().ping()`), y `celeryev` es el de los eventos que consume Flower. No hay que tocarlas; sirve saber que están y que no son basura.
+
+> **Ojo con `KEYS` en producción.** Recorre todas las claves y bloquea Redis mientras lo hace. En una base con millones de claves eso es un problema real. Para esto está `SCAN`, que va por tandas. En nuestra escala no importa, pero el hábito conviene.
+
+Y en la clase 24, donde el broker vive en Compose, cambia solo el nombre del contenedor:
+
+```bash
+docker compose exec redis redis-cli LLEN celery
+```
+
+Ahí además vamos a tener Flower, que muestra todo esto como tabla en el navegador. Pero vale haberlo visto crudo primero: Flower no hace nada que no se pueda hacer con estos comandos.
 
 ---
 
@@ -407,15 +540,17 @@ La lectura es la misma de la clase 22 con el `chunksize`: si la tarea es más co
 4. **`@app.task`**: decorador que registra una función como tarea ejecutable.
 5. **`delay()`**: encola y devuelve enseguida.
 6. **`AsyncResult`**: vista sobre el estado de una tarea, recuperable por id.
-7. **El id es el recibo**: lo único que hay que guardar para consultar después.
-8. **`PENDING` significa "no sé nada"**, no "en cola".
-9. **Viaja el nombre de la tarea más los argumentos**, no la función.
-10. **Los argumentos deben ser serializables**: pasá IDs, no objetos.
-11. **Worker y cliente comparten el código** de las tareas.
-12. **`concurrency`**: cuántas tareas a la vez por worker.
-13. **Escalado horizontal**: más workers, incluso en otras máquinas, sin tocar el código.
-14. **Las excepciones se guardan** con su traceback, no se pierden en silencio.
-15. **El costo**: un servicio más, latencia, y más cosas que pueden fallar.
+7. **El id es el recibo**: lo único que hay que guardar para consultar después. Y vence: los resultados expiran en 24 h por default.
+8. **`PENDING` significa "no sé nada"**, no "en cola". Se comprueba: la tarea está en la lista y la clave del backend no existe.
+9. **`-A` es un import**: el worker aprende las tareas importando el módulo, y por eso el comando depende del directorio.
+10. **La cola es una lista de Redis** llamada `celery`, y los resultados son claves `celery-task-meta-<id>`. Todo inspeccionable con `redis-cli`.
+11. **Viaja el nombre de la tarea más los argumentos**, no la función.
+12. **Los argumentos deben ser serializables**: pasá IDs, no objetos.
+13. **Worker y cliente comparten el código** de las tareas.
+14. **`concurrency`**: cuántas tareas a la vez por worker.
+15. **Escalado horizontal**: más workers, incluso en otras máquinas, sin tocar el código.
+16. **Las excepciones se guardan** con su traceback, no se pierden en silencio.
+17. **El costo**: un servicio más, latencia, y más cosas que pueden fallar.
 
 ---
 

@@ -20,6 +20,7 @@
 2026/
 ├── README.md                    # Este archivo
 ├── PLANIFICACION_2026.md       # Planificación detallada del curso
+├── FINAL_REQUERIMIENTOS.md     # Requisitos del examen final (documento único)
 │
 ├── bloque_0_autonomo/          # Material para estudio autónomo
 │   ├── git/                    # Git y GitHub
@@ -100,6 +101,18 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
 
 ---
 
+## Examen final
+
+Los requisitos del final están en **[`FINAL_REQUERIMIENTOS.md`](FINAL_REQUERIMIENTOS.md)**, en la raíz de este repositorio.
+
+Ahí está todo: qué tiene que incluir el código integrador, cómo se define el tema antes de empezar a programar, qué documentación lleva el repositorio del proyecto, y cómo es la presentación ante el tribunal.
+
+Lo más importante de recordar desde ahora: **el tema se acuerda con un profesor antes de escribir código**, y el proyecto se presenta al menos una semana antes de la mesa.
+
+> **Nota para docentes:** `FINAL_REQUERIMIENTOS.md` es el **documento único** de requisitos del final. Si hace falta modificarlos, editar ese archivo — no agregar otro en paralelo. Tener dos documentos de requisitos en la raíz hace que algún alumno siga el que no corresponde.
+
+---
+
 ## Cómo usar este material
 
 ### Para estudiantes
@@ -121,12 +134,18 @@ las semanas de mesas de exámenes (14-18/09) ni de recuperaciones (09-13/11).
    - Seguir las instrucciones en cada carpeta de TP
    - Respetar las fechas de entrega
 
+5. **Para el final:**
+   - Leer [`FINAL_REQUERIMIENTOS.md`](FINAL_REQUERIMIENTOS.md) antes de pensar el proyecto
+   - Acordar el tema con un profesor **antes** de empezar a codear
+
 ### Para docentes
 
 Ver `PLANIFICACION_2026.md` para:
 - Detalle de cada clase
 - Criterios de evaluación
 - Material de evaluación docente (no distribuir)
+
+Los requisitos del final son [`FINAL_REQUERIMIENTOS.md`](FINAL_REQUERIMIENTOS.md), documento único.
 
 ---
 
